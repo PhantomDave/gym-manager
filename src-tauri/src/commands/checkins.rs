@@ -3,7 +3,7 @@ use serde::Serialize;
 use tauri::State;
 
 use super::{blank_to_none, today};
-use crate::error::{AppError, Result};
+use crate::error::{AppError, Reason, Result};
 use crate::models::Checkin;
 use crate::AppState;
 
@@ -18,8 +18,9 @@ pub struct EntryCheck {
     pub cert_through: Option<String>,
     /// `ok` | `warn` | `block` — the colour of the banner.
     pub status: String,
-    /// Plain sentences for the receptionist, not error codes.
-    pub reasons: Vec<String>,
+    /// Translatable codes, never finished sentences — the frontend writes the
+    /// prose so the receptionist reads it in her own language.
+    pub reasons: Vec<Reason>,
     /// Membership id that authorises entry, if any.
     pub membership_id: Option<i64>,
 }
@@ -56,9 +57,9 @@ fn evaluate(conn: &rusqlite::Connection, member_id: i64) -> Result<EntryCheck> {
         )
         .map_err(|e| match e {
             rusqlite::Error::QueryReturnedNoRows => {
-                AppError::not_found(format!("member {member_id}"))
+                AppError::new("member.not_found", "member does not exist").with("id", member_id)
             }
-            other => AppError::Db(other),
+            other => other.into(),
         })?;
 
     let grace_days: i64 = crate::db::setting(conn, "grace_days", "0")
@@ -78,24 +79,26 @@ fn evaluate(conn: &rusqlite::Connection, member_id: i64) -> Result<EntryCheck> {
     match &paid_through {
         None => {
             blocked = true;
-            reasons.push("No membership on file.".into());
+            reasons.push(Reason::new("entry.no_membership"));
         }
         Some(p) => {
             let end = super::parse_date(p, "stored end date")?;
             let days_left = (end - today).num_days();
             if days_left < -grace_days {
                 blocked = true;
-                reasons.push(format!("Membership expired on {p}."));
+                reasons.push(Reason::new("entry.membership_expired").with("date", p));
             } else if days_left < 0 {
                 warned = true;
-                reasons.push(format!("Membership expired on {p}, within grace period."));
+                reasons.push(Reason::new("entry.membership_grace").with("date", p));
             } else if days_left <= warn_days {
                 warned = true;
-                reasons.push(match days_left {
-                    0 => "Membership ends today.".to_string(),
-                    1 => "Membership ends tomorrow.".to_string(),
-                    n => format!("Membership ends in {n} days."),
-                });
+                // Plural selection belongs to the frontend: Italian and English
+                // do not agree on how many forms there are.
+                reasons.push(
+                    Reason::new("entry.membership_ending")
+                        .with("days", days_left)
+                        .with("date", p),
+                );
             }
         }
     }
@@ -103,17 +106,21 @@ fn evaluate(conn: &rusqlite::Connection, member_id: i64) -> Result<EntryCheck> {
     match &cert_through {
         None => {
             blocked = true;
-            reasons.push("No health certificate on file.".into());
+            reasons.push(Reason::new("entry.no_certificate"));
         }
         Some(c) => {
             let end = super::parse_date(c, "stored expiry date")?;
             let days_left = (end - today).num_days();
             if days_left < 0 {
                 blocked = true;
-                reasons.push(format!("Health certificate expired on {c}."));
+                reasons.push(Reason::new("entry.certificate_expired").with("date", c));
             } else if days_left <= cert_warn_days {
                 warned = true;
-                reasons.push(format!("Health certificate expires on {c}."));
+                reasons.push(
+                    Reason::new("entry.certificate_ending")
+                        .with("days", days_left)
+                        .with("date", c),
+                );
             }
         }
     }
@@ -162,10 +169,12 @@ pub fn checkin_create(
     let reason = blank_to_none(override_reason);
 
     if check.status == "block" && reason.is_none() {
-        return Err(AppError::invalid(format!(
-            "entry is blocked: {} Provide a reason to admit anyway.",
-            check.reasons.join(" ")
-        )));
+        // The frontend already holds the reasons from entry_check, so this
+        // carries only the fact that a reason is required.
+        return Err(AppError::new(
+            "checkin.blocked",
+            "entry is blocked; a reason is required to admit anyway",
+        ));
     }
 
     conn.execute(

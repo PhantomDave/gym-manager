@@ -8,6 +8,7 @@
 pub mod app;
 pub mod checkins;
 pub mod documents;
+pub mod expiries;
 pub mod members;
 pub mod memberships;
 
@@ -26,7 +27,7 @@ pub fn today() -> NaiveDate {
 /// Parse an ISO date coming from the frontend, with a useful error message.
 pub fn parse_date(value: &str, field: &str) -> Result<NaiveDate> {
     NaiveDate::parse_from_str(value.trim(), "%Y-%m-%d")
-        .map_err(|_| AppError::invalid(format!("{field} must be a date in YYYY-MM-DD form")))
+        .map_err(|_| AppError::new("date.invalid", "not a YYYY-MM-DD date").with("field", field))
 }
 
 /// Normalise an optional free-text field: blank strings become None so the

@@ -122,7 +122,7 @@ pub fn member_get(state: State<AppState>, id: i64) -> Result<MemberDetail> {
 pub fn member_create(state: State<AppState>, input: MemberInput) -> Result<i64> {
     let conn = state.db();
     let (first, last) = validate_name(&input)?;
-    let birth_date = optional_date(input.birth_date, "birth date")?;
+    let birth_date = optional_date(input.birth_date, "birth_date")?;
 
     conn.execute(
         "INSERT INTO member (first_name, last_name, national_id, birth_date, phone,
@@ -149,7 +149,7 @@ pub fn member_create(state: State<AppState>, input: MemberInput) -> Result<i64> 
 pub fn member_update(state: State<AppState>, id: i64, input: MemberInput) -> Result<()> {
     let conn = state.db();
     let (first, last) = validate_name(&input)?;
-    let birth_date = optional_date(input.birth_date, "birth date")?;
+    let birth_date = optional_date(input.birth_date, "birth_date")?;
 
     let changed = conn
         .execute(
@@ -173,7 +173,7 @@ pub fn member_update(state: State<AppState>, id: i64, input: MemberInput) -> Res
         .map_err(duplicate_id_hint)?;
 
     if changed == 0 {
-        return Err(AppError::not_found(format!("member {id}")));
+        return Err(AppError::new("member.not_found", "member does not exist").with("id", id));
     }
     Ok(())
 }
@@ -190,7 +190,7 @@ pub fn member_archive(state: State<AppState>, id: i64) -> Result<()> {
         [id],
     )?;
     if changed == 0 {
-        return Err(AppError::not_found(format!("member {id}")));
+        return Err(AppError::new("member.not_found", "member does not exist").with("id", id));
     }
     Ok(())
 }
@@ -199,7 +199,10 @@ fn validate_name(input: &MemberInput) -> Result<(String, String)> {
     let first = input.first_name.trim().to_string();
     let last = input.last_name.trim().to_string();
     if first.is_empty() || last.is_empty() {
-        return Err(AppError::invalid("first and last name are both required"));
+        return Err(AppError::new(
+            "member.name_required",
+            "first and last name are both required",
+        ));
     }
     Ok((first, last))
 }
@@ -209,9 +212,12 @@ fn validate_name(input: &MemberInput) -> Result<(String, String)> {
 fn duplicate_id_hint(err: rusqlite::Error) -> AppError {
     let msg = err.to_string();
     if msg.contains("idx_member_national_id") {
-        AppError::invalid("another member is already registered with that ID number")
+        AppError::new(
+            "member.duplicate_national_id",
+            "another member already has that ID number",
+        )
     } else {
-        AppError::Db(err)
+        err.into()
     }
 }
 
@@ -238,8 +244,10 @@ pub(crate) fn load_member(conn: &Connection, id: i64) -> Result<Member> {
         },
     )
     .map_err(|e| match e {
-        rusqlite::Error::QueryReturnedNoRows => AppError::not_found(format!("member {id}")),
-        other => AppError::Db(other),
+        rusqlite::Error::QueryReturnedNoRows => {
+            AppError::new("member.not_found", "member does not exist").with("id", id)
+        }
+        other => other.into(),
     })
 }
 

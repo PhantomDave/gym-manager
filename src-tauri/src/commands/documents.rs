@@ -16,26 +16,28 @@ use crate::AppState;
 #[tauri::command]
 pub fn document_add(state: State<AppState>, input: DocumentInput) -> Result<Document> {
     if !DOCUMENT_KINDS.contains(&input.kind.as_str()) {
-        return Err(AppError::invalid(format!(
-            "unknown document kind '{}'; expected one of {}",
-            input.kind,
-            DOCUMENT_KINDS.join(", ")
-        )));
+        return Err(
+            AppError::new("document.unknown_kind", "unknown document kind")
+                .with("kind", &input.kind)
+                .with("expected", DOCUMENT_KINDS.join(", ")),
+        );
     }
 
-    let issued_on = optional_date(input.issued_on, "issue date")?;
-    let expires_on = optional_date(input.expires_on, "expiry date")?;
+    let issued_on = optional_date(input.issued_on, "issued_on")?;
+    let expires_on = optional_date(input.expires_on, "expires_on")?;
 
     // A certificate with no expiry is the failure mode this whole feature
     // exists to prevent, so it is a hard error rather than a warning.
     if input.kind == "health_cert" && expires_on.is_none() {
-        return Err(AppError::invalid(
+        return Err(AppError::new(
+            "document.cert_needs_expiry",
             "a health certificate needs an expiry date",
         ));
     }
     if let (Some(i), Some(e)) = (&issued_on, &expires_on) {
         if e < i {
-            return Err(AppError::invalid(
+            return Err(AppError::new(
+                "document.expiry_before_issue",
                 "the expiry date is before the issue date",
             ));
         }
@@ -91,15 +93,17 @@ pub fn document_open(app: tauri::AppHandle, state: State<AppState>, id: i64) -> 
             |r| r.get(0),
         )
         .map_err(|e| match e {
-            rusqlite::Error::QueryReturnedNoRows => AppError::not_found(format!("document {id}")),
-            other => AppError::Db(other),
+            rusqlite::Error::QueryReturnedNoRows => {
+                AppError::new("document.not_found", "document does not exist").with("id", id)
+            }
+            other => other.into(),
         })?
     };
 
     let path = storage::resolve(&state.data_dir, &rel_path)?;
     app.opener()
         .open_path(path.to_string_lossy(), None::<&str>)
-        .map_err(|e| AppError::invalid(format!("could not open the document: {e}")))
+        .map_err(|e| AppError::new("document.open_failed", e.to_string()))
 }
 
 /// Soft-delete a document row.
@@ -116,7 +120,7 @@ pub fn document_delete(state: State<AppState>, id: i64) -> Result<()> {
         [id],
     )?;
     if changed == 0 {
-        return Err(AppError::not_found(format!("document {id}")));
+        return Err(AppError::new("document.not_found", "document does not exist").with("id", id));
     }
     Ok(())
 }

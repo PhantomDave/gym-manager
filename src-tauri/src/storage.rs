@@ -36,20 +36,19 @@ pub struct Stored {
 /// If a file with the same hash is already stored, the copy is skipped and the
 /// existing path is returned.
 pub fn import(data_dir: &Path, source: &Path) -> Result<Stored> {
-    let meta = std::fs::metadata(source)
-        .map_err(|_| AppError::not_found(format!("file not found: {}", source.display())))?;
+    let meta = std::fs::metadata(source).map_err(|_| {
+        AppError::new("storage.file_not_found", "file not found").with("path", source.display())
+    })?;
     if !meta.is_file() {
-        return Err(AppError::invalid("not a regular file"));
+        return Err(AppError::new("storage.not_a_file", "not a regular file"));
     }
     if meta.len() == 0 {
-        return Err(AppError::invalid("file is empty"));
+        return Err(AppError::new("storage.file_empty", "file is empty"));
     }
     if meta.len() > MAX_BYTES {
-        return Err(AppError::invalid(format!(
-            "file is {:.1} MB; the limit is {} MB",
-            meta.len() as f64 / 1_048_576.0,
-            MAX_BYTES / 1_048_576
-        )));
+        return Err(AppError::new("storage.file_too_large", "file is too large")
+            .with("size", format!("{:.1}", meta.len() as f64 / 1_048_576.0))
+            .with("limit", MAX_BYTES / 1_048_576));
     }
 
     let hash = hash_file(source)?;
@@ -95,18 +94,24 @@ pub fn import(data_dir: &Path, source: &Path) -> Result<Stored> {
 /// still checked: a traversal bug here would hand `xdg-open` an arbitrary path.
 pub fn resolve(data_dir: &Path, rel_path: &str) -> Result<PathBuf> {
     if rel_path.contains("..") || Path::new(rel_path).is_absolute() {
-        return Err(AppError::invalid("suspicious document path"));
+        return Err(AppError::new(
+            "storage.suspicious_path",
+            "suspicious document path",
+        ));
     }
     let path = data_dir.join(rel_path);
     if !path.starts_with(data_dir) {
-        return Err(AppError::invalid(
+        return Err(AppError::new(
+            "storage.path_escape",
             "document path escapes the data directory",
         ));
     }
     if !path.exists() {
-        return Err(AppError::not_found(format!(
-            "the file for this document is missing: {rel_path}"
-        )));
+        return Err(AppError::new(
+            "storage.file_missing",
+            "the file for this document is missing",
+        )
+        .with("path", rel_path));
     }
     Ok(path)
 }

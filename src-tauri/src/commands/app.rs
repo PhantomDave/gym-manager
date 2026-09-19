@@ -111,7 +111,7 @@ pub fn backup_now(state: State<AppState>) -> Result<String> {
     // VACUUM INTO takes a literal path; bind it as a parameter so a path with a
     // quote in it cannot break the statement.
     conn.execute("VACUUM INTO ?1", [dest.to_string_lossy().as_ref()])
-        .map_err(|e| AppError::invalid(format!("backup failed: {e}")))?;
+        .map_err(|e| AppError::new("backup.failed", e.to_string()))?;
 
     prune_backups(&dir, 7)?;
     Ok(dest.to_string_lossy().to_string())

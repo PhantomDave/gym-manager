@@ -28,7 +28,7 @@ constraint drives most of the design decisions below.
 |---|---|
 | **Shell** | Tauri 2 — uses the WebKitGTK already on Mint instead of shipping a second browser. Electron idles around 400 MB; this sits near 100–150 MB. |
 | **Backend** | Rust, one SQLite file, one connection behind a mutex. No server, no pool, no ORM. |
-| **Frontend** | Plain HTML/CSS/JS. No bundler, no framework, no `node_modules` — the file you edit is the file that ships. |
+| **Frontend** | Preact + TypeScript, bundled by bun. Three npm packages in total; no CSS framework. |
 | **Documents** | Content-addressed files on disk, never BLOBs in the database. |
 | **Viewing** | `xdg-open` hands PDFs to the system viewer. Bundling a renderer would cost more memory than the rest of the app. |
 
@@ -56,18 +56,29 @@ between renewing early and renewing late. See
 ## Layout
 
 ```
-src/                     frontend — three files, no build step
+src/                     frontend (TypeScript + Preact)
+  types.ts               the IPC contract — mirrors models.rs
+  i18n.ts  locales/      Italian and English catalogues
+  lib/status.ts          the single rule turning dates into a colour
+  views/                 one .tsx per screen
 src-tauri/
   src/
     dates.rs             membership period rules (the subtle part)
     db.rs                pragmas + migrations
     storage.rs           content-addressed document store
-    models.rs            row shapes shared with the frontend
+    error.rs             coded errors — never prose
     commands/            the entire IPC surface
     migrations/          plain .sql, applied by user_version
   tauri.conf.json
   capabilities/          exactly two permissions beyond core
 ```
+
+## Language
+
+The interface is bilingual, Italian by default, English available in Settings.
+Code, comments and commits are English. UI strings live in `src/locales/`; the
+English catalogue is typed against the Italian one, so a missing translation is
+a compile error rather than a blank label.
 
 ## Building
 
@@ -77,21 +88,23 @@ Rust 1.85+ and the Tauri system libraries. On Debian/Ubuntu/Mint:
 sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libxdo-dev libssl-dev build-essential file
 ```
 
-Then:
+Then the toolchains:
 
 ```bash
 cargo install tauri-cli --locked --version "^2"
+bun install
 ```
 
-Run it in development:
+Run it in development — the frontend bundle is built automatically first:
 
 ```bash
 cd src-tauri && cargo tauri dev
 ```
 
-Tests and lints:
+Tests, types and lints:
 
 ```bash
+bun run check
 cd src-tauri && cargo test && cargo clippy --all-targets -- -D warnings
 ```
 

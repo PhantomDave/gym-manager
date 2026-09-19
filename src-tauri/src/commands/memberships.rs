@@ -54,11 +54,17 @@ pub fn membership_renew(
     note: Option<String>,
 ) -> Result<Membership> {
     if price_cents < 0 {
-        return Err(AppError::invalid("price cannot be negative"));
+        return Err(AppError::new(
+            "membership.negative_price",
+            "price cannot be negative",
+        ));
     }
     let paid_cents = paid_cents.unwrap_or(price_cents);
     if paid_cents < 0 {
-        return Err(AppError::invalid("paid amount cannot be negative"));
+        return Err(AppError::new(
+            "membership.negative_paid",
+            "paid amount cannot be negative",
+        ));
     }
 
     let conn = state.db();
@@ -72,7 +78,8 @@ pub fn membership_renew(
     // and overlapping periods would silently corrupt every revenue report.
     if let Some((s, e)) = latest_period(&conn, member_id)? {
         if dates::overlaps((starts_on, ends_on), (s, e)) {
-            return Err(AppError::invalid(
+            return Err(AppError::new(
+                "membership.overlap",
                 "that period overlaps an existing membership",
             ));
         }
@@ -112,7 +119,8 @@ pub fn membership_renew(
 pub fn membership_void(state: State<AppState>, id: i64, reason: String) -> Result<()> {
     let reason = reason.trim().to_string();
     if reason.is_empty() {
-        return Err(AppError::invalid(
+        return Err(AppError::new(
+            "membership.void_reason_required",
             "a reason is required to void a membership",
         ));
     }
@@ -123,9 +131,11 @@ pub fn membership_void(state: State<AppState>, id: i64, reason: String) -> Resul
         params![id, reason],
     )?;
     if changed == 0 {
-        return Err(AppError::not_found(format!(
-            "membership {id} (or it is already voided)"
-        )));
+        return Err(AppError::new(
+            "membership.not_found",
+            "membership does not exist or is voided",
+        )
+        .with("id", id));
     }
     Ok(())
 }

@@ -20,6 +20,11 @@ to anything non-obvious so it is still legible in three months.
 - [x] Dashboard tiles, expiring-certificate list
 - [x] `VACUUM INTO` backup with 7-snapshot retention
 - [x] CI (fmt, clippy, test, build, version consistency), release, audit workflows
+- [x] TypeScript + Preact frontend, bundled by bun; `tsc --noEmit` in CI
+- [x] Bilingual UI (Italian default), backend errors as codes not sentences
+- [x] Member edit, certificate update, and the expiries screen
+- [x] Native `<dialog>` (focus trap, Escape, focus return) and three-select dates
+- [x] Larger type scale, labelled search fields, Enter to check in
 
 ---
 
@@ -30,8 +35,6 @@ to anything non-obvious so it is still legible in three months.
       `ps -o rss= -C gym-manager` after ten minutes of normal use.
 - [ ] **Seed script / demo data.** Fifty fake members across every status
       combination, so the UI can be judged without hand-entering rows.
-- [ ] **Edit an existing member.** `member_update` exists on the backend but the
-      drawer has no edit form yet.
 - [ ] **Confirm before archiving works, but there is no un-archive.** Add an
       "Archived" filter and a restore action — someone will archive the wrong
       person in week one.
@@ -39,8 +42,14 @@ to anything non-obvious so it is still legible in three months.
       but there is no way to record a later payment against an existing period.
 - [ ] **Empty states and first-run.** Fresh install shows zeroes and no guidance.
       A first-run panel that sets the gym name and monthly price would help.
-- [ ] **Keyboard flow at the desk.** Enter should check in the top search result;
-      right now it needs a click.
+- [ ] **Generate `types.ts` from Rust.** It is hand-written today, so a changed
+      struct in `models.rs` drifts silently until something breaks at runtime.
+      `ts-rs` derives the declarations during `cargo test`. This is the single
+      biggest remaining correctness gap.
+- [ ] **Verify the date picker claim on Mint.** `DateField` uses three selects
+      because WebKitGTK is believed not to render `<input type="date">`. Confirm
+      with `/usr/lib/webkit2gtk-4.1/MiniBrowser 'data:text/html,<input type="date">'`
+      — if it works after all, the component is still fine, but record the fact.
 
 ## Data and correctness
 
@@ -95,10 +104,10 @@ to anything non-obvious so it is still legible in three months.
 - [ ] **Integration tests for the commands.** `dates`, `db` and `storage` are
       covered; the command layer is not. Needs a test harness that builds an
       `AppState` without a Tauri window.
-- [ ] **Frontend has no tests at all.** `statusOf` and `daysUntil` are pure
-      functions holding the whole status rule — worth extracting and testing if
-      the UI grows.
-- [ ] **`app.js` is one file.** Fine at this size; split when a screen is added,
-      not before.
-- [ ] **Error messages are strings across the IPC boundary.** If the UI ever
-      needs to branch on error type, give `AppError` a code field.
+- [ ] **Frontend has no tests.** `statusOf`, `daysUntil` and `eurosToCents` are
+      pure functions holding real rules — `eurosToCents` in particular parses the
+      comma an Italian operator types, and getting that wrong loses money.
+      `bun test` needs no extra dependency.
+- [x] ~~`app.js` is one file~~ — split into views, components and lib.
+- [x] ~~Error messages are strings across the IPC boundary~~ — `AppError` now
+      carries `{ code, message, params }` and the frontend translates it.

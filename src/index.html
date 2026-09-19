@@ -1,123 +1,15 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gym Manager</title>
+    <title>Gestione Palestra</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <nav class="sidebar">
-      <div class="brand">
-        <span class="brand-mark"></span>
-        <span id="gym-name">Gym Manager</span>
-      </div>
-      <button class="nav-item is-active" data-view="today">Today</button>
-      <button class="nav-item" data-view="members">Members</button>
-      <button class="nav-item" data-view="settings">Settings</button>
-      <div class="sidebar-foot">
-        <button id="btn-new-member" class="btn btn-primary btn-block">New member</button>
-      </div>
-    </nav>
-
-    <main class="content">
-      <!-- Today -------------------------------------------------------- -->
-      <section id="view-today" class="view is-active">
-        <header class="view-head">
-          <h1>Today</h1>
-          <span id="today-date" class="muted"></span>
-        </header>
-
-        <div class="tiles" id="tiles"></div>
-
-        <div class="panel">
-          <h2>Check in</h2>
-          <input
-            id="checkin-search"
-            class="search search-lg"
-            type="search"
-            placeholder="Type a name and press Enter…"
-            autocomplete="off"
-          />
-          <div id="checkin-results" class="results"></div>
-        </div>
-
-        <div class="split">
-          <div class="panel">
-            <h2>Checked in today</h2>
-            <div id="checkins-today" class="list"></div>
-          </div>
-          <div class="panel">
-            <h2>Certificates expiring</h2>
-            <div id="certs-expiring" class="list"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Members ------------------------------------------------------ -->
-      <section id="view-members" class="view">
-        <header class="view-head">
-          <h1>Members</h1>
-        </header>
-        <div class="toolbar">
-          <input id="member-search" class="search" type="search" placeholder="Search members…" autocomplete="off" />
-          <div class="chips" id="filter-chips">
-            <button class="chip is-active" data-filter="all">All</button>
-            <button class="chip" data-filter="active">Active</button>
-            <button class="chip" data-filter="expiring">Expiring</button>
-            <button class="chip" data-filter="expired">Expired</button>
-            <button class="chip" data-filter="certExpired">Cert expired</button>
-            <button class="chip" data-filter="certMissing">Cert missing</button>
-          </div>
-        </div>
-        <div id="members-table" class="list"></div>
-      </section>
-
-      <!-- Settings ----------------------------------------------------- -->
-      <section id="view-settings" class="view">
-        <header class="view-head"><h1>Settings</h1></header>
-        <div class="panel">
-          <div id="settings-form" class="form-grid"></div>
-        </div>
-        <div class="panel">
-          <h2>Backup</h2>
-          <p class="muted">
-            Snapshots the database into <code>backups/</code> and keeps the last seven.
-            Documents live in <code>docs/</code> and are append-only — copy that folder to
-            external storage separately.
-          </p>
-          <button id="btn-backup" class="btn">Back up now</button>
-          <span id="backup-result" class="muted"></span>
-        </div>
-      </section>
-    </main>
-
-    <!-- Member detail drawer --------------------------------------------- -->
-    <aside id="drawer" class="drawer" hidden>
-      <div class="drawer-head">
-        <div>
-          <h2 id="drawer-name"></h2>
-          <div id="drawer-badges" class="badges"></div>
-        </div>
-        <button id="drawer-close" class="btn btn-ghost" aria-label="Close">✕</button>
-      </div>
-      <div id="drawer-body" class="drawer-body"></div>
-    </aside>
-
-    <!-- Modal ------------------------------------------------------------ -->
-    <div id="modal" class="modal" hidden>
-      <div class="modal-card">
-        <h2 id="modal-title"></h2>
-        <div id="modal-body"></div>
-        <div class="modal-actions">
-          <button id="modal-cancel" class="btn btn-ghost">Cancel</button>
-          <button id="modal-confirm" class="btn btn-primary">Save</button>
-        </div>
-      </div>
-    </div>
-
-    <div id="toast" class="toast" hidden></div>
-
-    <script src="app.js"></script>
+    <!-- Everything is rendered by Preact. The lang attribute is rewritten by
+         i18n.setLanguage() so assistive technology follows the chosen language. -->
+    <div id="app"></div>
+    <script type="module" src="app.js"></script>
   </body>
 </html>

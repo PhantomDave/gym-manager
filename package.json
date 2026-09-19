@@ -1,0 +1,15 @@
+{
+  "name": "gym-manager-ui",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/app.tsx --outdir dist --target browser --sourcemap=linked && cp src/index.html src/styles.css dist/",
+    "check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "preact": "^10.29.8"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2"
+  }
+}

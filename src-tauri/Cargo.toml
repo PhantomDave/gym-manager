@@ -18,13 +18,13 @@ rusqlite = { version = "0.40.2", features = ["bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.151"
 sha2 = "0.11.0"
-tauri = "2.11.5"
+tauri = { version = "2.11.5", features = [] }
 tauri-plugin-dialog = "2.7.3"
 tauri-plugin-opener = "2.5.5"
 thiserror = "2.0.20"
 
 [build-dependencies]
-tauri-build = "2.6.3"
+tauri-build = { version = "2.6.3", features = [] }
 
 # Tuned for size, not compile speed: the target machine has 2 GB of RAM and a
 # smaller binary means less to page in.

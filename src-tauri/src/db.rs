@@ -12,7 +12,10 @@ use std::path::Path;
 
 use crate::error::Result;
 
-const MIGRATIONS: &[&str] = &[include_str!("migrations/0001_init.sql")];
+const MIGRATIONS: &[&str] = &[
+    include_str!("migrations/0001_init.sql"),
+    include_str!("migrations/0002_language.sql"),
+];
 
 /// Open (creating if needed) the database and bring it up to date.
 pub fn open(path: &Path) -> Result<Connection> {
@@ -25,7 +28,7 @@ pub fn open(path: &Path) -> Result<Connection> {
     Ok(conn)
 }
 
-/// An in-memory database, migrated. Used by tests.
+/// An in-memory database, migrated. Used by tests across modules.
 #[cfg(test)]
 pub fn open_in_memory() -> Result<Connection> {
     let mut conn = Connection::open_in_memory()?;

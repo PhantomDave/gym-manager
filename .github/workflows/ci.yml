@@ -18,6 +18,27 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
+  frontend:
+    name: types and bundle
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      # tsc is the real check; bun build only strips types and would happily
+      # bundle code that does not typecheck.
+      - name: Type check
+        run: bun run check
+
+      - name: Build bundle
+        run: bun run build
+
   rust:
     name: fmt, clippy, test
     # 22.04 deliberately: it is the oldest base the deployment targets use
@@ -43,6 +64,13 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
 
       - uses: Swatinem/rust-cache@v2
         with:

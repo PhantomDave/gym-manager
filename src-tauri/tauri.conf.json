@@ -4,7 +4,9 @@
   "version": "0.1.0",
   "identifier": "dev.phantomdave.gymmanager",
   "build": {
-    "frontendDist": "../src"
+    "frontendDist": "../dist",
+    "beforeDevCommand": "bun run build",
+    "beforeBuildCommand": "bun run build"
   },
   "app": {
     "windows": [
