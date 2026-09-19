@@ -38,7 +38,11 @@ updates:
           - tauri-*
 
   # --- Frontend -------------------------------------------------------------
-  - package-ecosystem: npm
+  # `bun`, not `npm`. The only lockfile here is bun.lock, which the npm_and_yarn
+  # updater cannot regenerate — it would bump package.json and leave the lockfile
+  # stale, and every workflow runs `bun install --frozen-lockfile`, so each PR
+  # would arrive already failing.
+  - package-ecosystem: bun
     directory: /
     schedule:
       interval: weekly
@@ -47,14 +51,11 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - dependencies
-      - frontend
+      - frontend  # created explicitly; Dependabot drops labels that do not exist
     commit-message:
-      prefix: "build(npm)"
-    # Keep the manifest range in step with the lockfile, so package.json always
-    # states the version actually installed.
-    versioning-strategy: increase
+      prefix: "build(bun)"
     groups:
-      npm-minor-and-patch:
+      bun-minor-and-patch:
         update-types:
           - minor
           - patch
