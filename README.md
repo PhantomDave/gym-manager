@@ -71,7 +71,7 @@ src-tauri/
 
 ## Building
 
-Rust 1.82+ and the Tauri system libraries. On Debian/Ubuntu/Mint:
+Rust 1.85+ and the Tauri system libraries. On Debian/Ubuntu/Mint:
 
 ```bash
 sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libxdo-dev libssl-dev build-essential file

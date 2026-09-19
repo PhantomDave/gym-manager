@@ -8,6 +8,7 @@
 //! uploads deduplicate for free and no directory grows unbounded.
 
 use sha2::{Digest, Sha256};
+use std::fmt::Write as _;
 use std::fs::File;
 use std::io::{BufReader, Read, Write};
 use std::path::{Path, PathBuf};
@@ -121,7 +122,15 @@ fn hash_file(path: &Path) -> Result<String> {
         }
         hasher.update(&buf[..n]);
     }
-    Ok(format!("{:x}", hasher.finalize()))
+
+    // digest 0.11 returns a byte array that does not implement LowerHex, so the
+    // hex encoding is written out here rather than pulling in a crate for it.
+    let digest = hasher.finalize();
+    let mut hex = String::with_capacity(digest.len() * 2);
+    for byte in digest.iter() {
+        write!(hex, "{byte:02x}").expect("writing to a String cannot fail");
+    }
+    Ok(hex)
 }
 
 fn copy_stream(source: &Path, dest: &Path) -> Result<()> {
@@ -177,6 +186,24 @@ mod tests {
         assert_eq!(stored.mime, "application/pdf");
         assert_eq!(stored.bytes, 20);
         assert!(dir.join(&stored.rel_path).exists());
+
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    /// The hex encoding is written by hand (digest 0.11 dropped `LowerHex`),
+    /// so pin it against a published SHA-256 test vector. A regression here
+    /// would silently re-import every document in the store as a new file.
+    #[test]
+    fn hashes_match_the_known_vector() {
+        let dir = tmpdir("vector");
+        let src = dir.join("abc.txt");
+        std::fs::write(&src, b"abc").unwrap();
+
+        let stored = import(&dir, &src).unwrap();
+        assert_eq!(
+            stored.sha256,
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        );
 
         std::fs::remove_dir_all(&dir).unwrap();
     }
