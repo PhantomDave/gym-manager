@@ -245,10 +245,14 @@ async function attemptCheckin(memberId) {
       <button class="btn btn-ghost" data-member="${memberId}">Open</button>
     </div>`;
 
-  if (check.status !== "block") return;
-
-  // Blocked entries need a reason, so the override leaves a trail.
-  box.dataset.blocked = "1";
+  // Blocked entries need a reason, so the override leaves a trail. Set or clear
+  // it on every check: the results box outlives each search, so a flag left over
+  // from a previously blocked member would demand a reason for a clean one.
+  if (check.status === "block") {
+    box.dataset.blocked = "1";
+  } else {
+    delete box.dataset.blocked;
+  }
 }
 
 async function confirmCheckin(memberId, blocked) {

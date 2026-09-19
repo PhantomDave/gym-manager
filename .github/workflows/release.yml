@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install Tauri system dependencies
         run: |
@@ -79,7 +79,7 @@ jobs:
       - name: Fail if nothing was produced
         run: test "${{ steps.collect.outputs.count }}" -gt 0
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: gym-manager-linux
           path: dist/*
@@ -89,7 +89,7 @@ jobs:
       # real Mint box and open it once before this reaches the gym's desktop.
       - name: Publish draft release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: true
           generate_release_notes: true
