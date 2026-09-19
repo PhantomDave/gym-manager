@@ -1,0 +1,26 @@
+name: Audit
+
+on:
+  schedule:
+    # Mondays, 06:00 UTC. This app holds health data; an advisory in a
+    # transitive dependency should not wait for the next time someone pushes.
+    - cron: "0 6 * * 1"
+  push:
+    paths:
+      - "src-tauri/Cargo.lock"
+      - ".github/workflows/audit.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  cargo-audit:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: rustsec/audit-check@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          working-directory: src-tauri

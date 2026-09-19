@@ -1,0 +1,19 @@
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /src-tauri
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # Tauri's crates move in lockstep; separate PRs for each would never
+      # build on their own.
+      tauri:
+        patterns:
+          - "tauri"
+          - "tauri-*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

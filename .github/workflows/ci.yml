@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A new push to the same branch makes the previous run irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  rust:
+    name: fmt, clippy, test
+    # 22.04 deliberately: it is the oldest base the deployment targets use
+    # (Linux Mint 21), so anything that builds here runs there. Building on a
+    # newer runner would link against a glibc Mint 21 does not have.
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libssl-dev \
+            build-essential \
+            file
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Check formatting
+        working-directory: src-tauri
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        working-directory: src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Test
+        working-directory: src-tauri
+        run: cargo test --all-features
+
+      # Catches a broken tauri.conf.json, a capability referencing a permission
+      # that does not exist, or a missing icon — none of which the test suite
+      # would notice, because they only fail when the context is generated.
+      - name: Build
+        working-directory: src-tauri
+        run: cargo build
+
+  versions:
+    name: version consistency
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cargo.toml and tauri.conf.json must agree
+        run: |
+          cargo_version=$(grep -m1 '^version = ' src-tauri/Cargo.toml | cut -d'"' -f2)
+          tauri_version=$(python3 -c "import json;print(json.load(open('src-tauri/tauri.conf.json'))['version'])")
+          echo "Cargo.toml:      $cargo_version"
+          echo "tauri.conf.json: $tauri_version"
+          if [ "$cargo_version" != "$tauri_version" ]; then
+            echo "::error::version mismatch — the bundle would be named differently from the crate"
+            exit 1
+          fi

@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Build the bundles but do not publish a release"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux:
+    name: Build .deb and AppImage
+    # Same reasoning as CI: build on the oldest supported base so the .deb
+    # installs on Linux Mint 21 as well as 22.
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Tauri system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            libxdo-dev \
+            libssl-dev \
+            build-essential \
+            file
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # The tag is the source of truth for the version. A mismatch would ship a
+      # bundle whose filename disagrees with the release it is attached to.
+      - name: Tag must match the manifest version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          manifest=$(grep -m1 '^version = ' src-tauri/Cargo.toml | cut -d'"' -f2)
+          if [ "$tag" != "$manifest" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $manifest"
+            exit 1
+          fi
+
+      # Prebuilt binary rather than `cargo install tauri-cli`, which would spend
+      # several minutes compiling the CLI on every release.
+      - uses: cargo-bins/cargo-binstall@main
+
+      - name: Install the Tauri CLI
+        run: cargo binstall -y --locked tauri-cli@^2
+
+      - name: Build bundles
+        working-directory: src-tauri
+        run: cargo tauri build --bundles deb,appimage
+
+      - name: Collect bundles
+        id: collect
+        run: |
+          mkdir -p dist
+          find src-tauri/target/release/bundle -type f \
+            \( -name '*.deb' -o -name '*.AppImage' \) -exec cp {} dist/ \;
+          ls -lh dist
+          echo "count=$(ls dist | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if nothing was produced
+        run: test "${{ steps.collect.outputs.count }}" -gt 0
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gym-manager-linux
+          path: dist/*
+          retention-days: 14
+
+      # Published as a draft on purpose: someone should install the .deb on a
+      # real Mint box and open it once before this reaches the gym's desktop.
+      - name: Publish draft release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          generate_release_notes: true
+          files: dist/*
+          body: |
+            Install on Linux Mint:
+
+            ```bash
+            sudo apt install ./gym-manager_*_amd64.deb
+            ```
+
+            Data lives in `~/.local/share/dev.phantomdave.gymmanager/`
+            (`gym.db`, `docs/`, `backups/`). Back that folder up before upgrading.

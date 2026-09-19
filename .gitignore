@@ -1,0 +1,20 @@
+# Rust
+/src-tauri/target/
+
+# Tauri generated
+/src-tauri/gen/schemas/
+
+# Build output
+/dist/
+
+# Local data — never commit a real member database or anyone's documents
+*.db
+*.db-wal
+*.db-shm
+/docs-store/
+
+# Editors
+.idea/
+.vscode/
+*.swp
+.DS_Store
