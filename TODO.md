@@ -101,6 +101,14 @@ to anything non-obvious so it is still legible in three months.
 
 ## Known, not actionable yet
 
+- [ ] **CodeQL does not cover the Rust backend.** Default setup is enabled for
+      `actions` and `javascript-typescript`, but the API rejects `rust` as a
+      configurable language even though it reports it among the detected ones.
+      So the half of the codebase that touches the filesystem, SQLite and
+      `xdg-open` is the half not being scanned. Re-check when GitHub adds Rust
+      to default setup; `cargo clippy -- -D warnings` and `cargo audit` are the
+      cover until then.
+
 - [ ] **RUSTSEC-2024-0429, `glib` 0.18.5 unsoundness** (Dependabot: medium).
       Transitive and unfixable here: `tauri 2.11.5 → muda → gtk 0.18 → atk →
       glib 0.18.5`, and the fix landed in glib 0.20. Nothing pins it on our
