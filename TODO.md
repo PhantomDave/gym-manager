@@ -99,6 +99,16 @@ to anything non-obvious so it is still legible in three months.
 - [ ] **Extend the release matrix** if it ever needs to run on Windows or macOS.
       The workflow builds Linux only today.
 
+## Known, not actionable yet
+
+- [ ] **RUSTSEC-2024-0429, `glib` 0.18.5 unsoundness** (Dependabot: medium).
+      Transitive and unfixable here: `tauri 2.11.5 → muda → gtk 0.18 → atk →
+      glib 0.18.5`, and the fix landed in glib 0.20. Nothing pins it on our
+      side, so it moves only when Tauri moves off gtk 0.18. The affected
+      functions are `glib::VariantStrIter`'s iterator impls, which this app
+      never calls. **Deliberately not silenced** with an audit ignore — leave it
+      visible so it gets re-checked on the next Tauri bump.
+
 ## Code health
 
 - [ ] **Integration tests for the commands.** `dates`, `db` and `storage` are
