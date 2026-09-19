@@ -72,6 +72,12 @@ jobs:
       - name: Install frontend dependencies
         run: bun install --frozen-lockfile
 
+      # generate_context! reads frontendDist at COMPILE time, so the bundle has
+      # to exist before clippy or cargo test touch the lib — not only before a
+      # release build, where beforeBuildCommand would have handled it.
+      - name: Build frontend bundle
+        run: bun run build
+
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
