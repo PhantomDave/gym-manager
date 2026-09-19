@@ -1,19 +1,80 @@
 version: 2
+
+# Every ecosystem in the repository is covered: the Rust crate, the frontend's
+# npm packages, and the actions the workflows use. An ecosystem left out here
+# is one that silently stops receiving security updates.
+#
+# Grouping strategy: patch and minor releases arrive as one PR per ecosystem per
+# week, because reviewing fifteen separate bumps is how bumps stop getting
+# reviewed. Majors stay separate — those are the ones that need a human reading
+# a changelog.
+
 updates:
+  # --- Rust -----------------------------------------------------------------
   - package-ecosystem: cargo
     directory: /src-tauri
     schedule:
       interval: weekly
+      day: monday
+      time: "06:00"
     open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - rust
+    commit-message:
+      prefix: "build(cargo)"
     groups:
-      # Tauri's crates move in lockstep; separate PRs for each would never
-      # build on their own.
+      # Tauri's crates move in lockstep; separate PRs for each would not build.
       tauri:
         patterns:
-          - "tauri"
-          - "tauri-*"
+          - tauri
+          - tauri-*
+      cargo-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+        exclude-patterns:
+          - tauri
+          - tauri-*
 
+  # --- Frontend -------------------------------------------------------------
+  # `bun`, not `npm`. The only lockfile here is bun.lock, which the npm_and_yarn
+  # updater cannot regenerate — it would bump package.json and leave the lockfile
+  # stale, and every workflow runs `bun install --frozen-lockfile`, so each PR
+  # would arrive already failing.
+  - package-ecosystem: bun
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - frontend  # created explicitly; Dependabot drops labels that do not exist
+    commit-message:
+      prefix: "build(bun)"
+    groups:
+      bun-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+
+  # --- CI -------------------------------------------------------------------
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: monthly
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - ci
+    commit-message:
+      prefix: "ci(actions)"
+    groups:
+      actions-minor-and-patch:
+        update-types:
+          - minor
+          - patch
