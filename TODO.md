@@ -101,6 +101,25 @@ to anything non-obvious so it is still legible in three months.
 
 ## Known, not actionable yet
 
+- [ ] **Dependabot's `bun` updater fails on this repo.** The configuration is
+      correct — GitHub's own `dependabot.yml` check passes, the run pulls
+      `dependabot-updater-bun` and executes `bun --version` — but then
+      `bin/run update_files` exits 1 and the inner error is not surfaced in the
+      logs. `cargo` and `github-actions` both succeed, so it is specific to bun.
+      **Unverified hypothesis:** our `bun.lock` is `lockfileVersion: 2`, written
+      by bun 1.4.2, and the updater image may ship an older bun that only reads
+      version 1. Do not downgrade the lockfile to suit the updater — with two
+      direct frontend dependencies the cost of checking them by hand is near
+      zero. Re-check after the next bun or Dependabot release.
+      Run: <https://github.com/PhantomDave/gym-manager/actions/runs/35462231920>
+
+- [ ] **The glib security update run fails every time, by design of the
+      situation.** Dependabot tries to resolve RUSTSEC-2024-0429 and cannot,
+      because gtk 0.18 pins glib 0.18 (see the entry below). A permanently red
+      Dependabot run trains people to ignore red runs, which is its own risk —
+      if it becomes noise, the answer is an `ignore` entry with this reasoning
+      written next to it, not silence.
+
 - [ ] **CodeQL does not cover the Rust backend.** Default setup is enabled for
       `actions` and `javascript-typescript`, but the API rejects `rust` as a
       configurable language even though it reports it among the detected ones.
