@@ -100,6 +100,18 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
+      # 'Office' looked obviously right and is rejected by the bundler, which
+      # only finds out three minutes into a release build. Check it in seconds.
+      - name: Bundle category must be one the bundler accepts
+        run: |
+          category=$(python3 -c "import json;print(json.load(open('src-tauri/tauri.conf.json'))['bundle'].get('category',''))")
+          valid="business developertool education entertainment finance game graphicsanddesign healthcareandfitness lifestyle medical music news photography productivity reference socialnetworking sports travel utility video weather"
+          echo "category: $category"
+          if ! echo "$valid" | tr ' ' '\n' | grep -qx "$(echo "$category" | tr '[:upper:]' '[:lower:]')"; then
+            echo "::error::'$category' is not a Tauri AppCategory. One of: $valid"
+            exit 1
+          fi
+
       - name: Cargo.toml and tauri.conf.json must agree
         run: |
           cargo_version=$(grep -m1 '^version = ' src-tauri/Cargo.toml | cut -d'"' -f2)
