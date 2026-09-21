@@ -181,6 +181,13 @@ If you need more than one machine, **do not put the SQLite file on a network
 share** — that is a corruption bug waiting to happen. Replace the local
 connection with a small server process instead.
 
+## Contributing
+
+[AGENTS.md](AGENTS.md) is the operating brief — for AI agents, and readable by
+anyone. It covers the workflow (branch, pull request, merge only on green), the
+rules that are easy to break by accident, and why verifying the real artifact
+rather than a stand-in matters here.
+
 ## Licence
 
 MIT. See [LICENSE](LICENSE).

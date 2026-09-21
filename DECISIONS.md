@@ -252,8 +252,9 @@ the local equivalent, with consent, retention and access obligations.
 ## 16. The design system owns the visual values — adopted 2026-09-21
 
 The palette, type scale, spacing, radii and target sizes live in a published
-design system, and `src/styles.css` uses **the same token names**, so a change
-there is a find-and-replace here rather than a translation exercise.
+design system — <https://claude.ai/artifact/A7KjGfvhFdWDexJ3ErResX> — and
+`src/styles.css` uses **the same token names**, so a change there is a
+find-and-replace here rather than a translation exercise.
 
 Three numbers changed when it was applied, and none of them are taste:
 
