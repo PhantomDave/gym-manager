@@ -27,8 +27,7 @@
   "bundle": {
     "active": true,
     "targets": [
-      "deb",
-      "appimage"
+      "deb"
     ],
     "category": "Business",
     "shortDescription": "Gym membership desk",

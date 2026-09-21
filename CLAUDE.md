@@ -22,7 +22,7 @@ cd src-tauri && cargo tauri dev                        # runs the bundle first
 cd src-tauri && cargo test
 cd src-tauri && cargo clippy --all-targets -- -D warnings
 cd src-tauri && cargo fmt --all
-cd src-tauri && cargo tauri build --bundles deb,appimage
+cd src-tauri && cargo tauri build --bundles deb
 ```
 
 `bun build` only strips types. **`bun run check` is the real check** — run it
@@ -55,6 +55,11 @@ error until it is translated, which is the intended pressure.
 `MIGRATIONS` in `db.rs`.
 
 **Never put the SQLite file on a network share.**
+
+**Never add an AppImage target back without excluding the graphics libraries.**
+It bundles the build host's `libepoxy` and `libwayland*`, which fail with
+`EGL_BAD_PARAMETER` on a machine with different mesa — the app runs, the window
+stays black. The .deb uses the system WebKitGTK and works.
 
 **Never invent a colour, size or spacing value.** They come from the design
 system and `styles.css` uses its token names verbatim. A literal px in a rule is

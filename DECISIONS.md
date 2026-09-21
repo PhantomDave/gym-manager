@@ -317,19 +317,63 @@ Any missing, late or incomplete bridge therefore threw during module evaluation,
 before a single component mounted. It is now resolved lazily inside `bridge()`
 and raises a sentence the boot guard can show.
 
-### What is fixed versus what is suspected
+### What is fixed versus what was wrongly suspected — corrected 2026-09-21
 
-The smoke test **proves** the frontend boots and renders correctly in WebKitGTK,
-so the bundle was not the cause of the reported black screen. Running the app on
-this machine logged `GDK is not able to create a GL context`, which is a known
-cause of a black WebKitGTK window on Linux and is unrelated to the frontend.
-`main.rs` therefore sets `WEBKIT_DISABLE_COMPOSITING_MODE` and
-`WEBKIT_DISABLE_DMABUF_RENDERER` on Linux unless they are already set. The
-accelerated path buys nothing here — no animation, no canvas, no video — and a
-window that always draws is worth more than it.
+The smoke test **proved** the frontend boots and renders correctly in
+WebKitGTK, so the bundle was never the cause.
 
-**Still unconfirmed:** nobody has watched the window before and after that
-change. It is a strong hypothesis supported by the log, not a reproduction.
+**The cause recorded here first was wrong.** It blamed `GDK is not able to
+create a GL context` and added `WEBKIT_DISABLE_COMPOSITING_MODE` and
+`WEBKIT_DISABLE_DMABUF_RENDERER` to `main.rs`. That log line came from the test
+harness — `Gtk.OffscreenWindow`, which legitimately has no GL context — not from
+the app. The env vars were then tested against the failing AppImage and changed
+nothing. They have been removed: a workaround with no evidence behind it is
+cruft, and the app runs fine without them.
+
+The real cause is decision 18.
+
+## 18. The release ships a .deb, not an AppImage — 2026-09-21
+
+`cargo tauri dev` worked while the AppImage showed a black window. Running the
+AppImage and reading its stderr gave the answer in one line:
+
+```
+Could not create default EGL display: EGL_BAD_PARAMETER. Aborting...
+```
+
+The WebKit processes were alive; the graphics path was not, so the window never
+painted. **The AppImage bundles the build host's graphics stack** — `libepoxy`,
+`libwayland-client`, `libwayland-egl` and friends, taken from the ubuntu-22.04
+runner — and those conflict with the mesa on any machine that differs.
+
+Proved by deleting exactly those five libraries from the extracted AppDir and
+running it again: the EGL error disappeared completely. No environment variable
+fixed it — compositing off, DMABUF off, software GL, `GDK_BACKEND=wayland` and
+a cairo renderer were all tried and all still failed.
+
+The `.deb` links against the **system** WebKitGTK, epoxy and Wayland, which is
+exactly what `cargo tauri dev` does and exactly why dev worked. Verified by
+running the release binary: no EGL error, web and network processes alive.
+
+**So the release ships the .deb only.** The target is one Linux Mint machine,
+where .deb is the native format; the AppImage's portability buys nothing there
+and cost a black screen. It is also 80 MB against 2.5 MB, and 244 MB unpacked.
+
+**Revisit if:** the app ever has to run on a distro without a matching
+WebKitGTK. Reviving the AppImage means excluding the graphics libraries from the
+bundle, not re-enabling the target as it stands.
+
+### Building the AppImage locally does not work either
+
+On Arch/CachyOS the bundled `linuxdeploy` fails on every system library:
+
+```
+strip: ... unknown type [0x13] section `.relr.dyn'
+```
+
+Its `strip` predates the relocation format the modern toolchain emits.
+`NO_STRIP=1` works around it, but since the target is now `deb` only, nothing
+here needs linuxdeploy at all.
 
 ## 15. Build on a development machine, not on the target
 
