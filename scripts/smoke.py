@@ -203,6 +203,8 @@ def check_select_rendering(pixels: Pixels, boxes: dict) -> list[str]:
     # Along the middle of the control, stopping short of the arrow.
     strip = pixels.row(select["x"] + 14, select["x"] + select["w"] - 40,
                        select["y"] + select["h"] // 2)
+    if not strip:
+        return [f"la select è larga {select['w']}px: troppo poco per leggerne il testo"]
     ink = min(strip, key=luminance)
     paper = max(strip, key=luminance)
     ratio = contrast(ink, paper)
@@ -358,13 +360,25 @@ def main() -> int:
         problems.append("il foglio di stile non è stato applicato")
     if "settings_all" not in (state.get("calls") or []):
         problems.append("il frontend non ha mai chiamato il backend")
+    if "probeError" in state:
+        problems.append(f"una sonda non ha risposto: {state['probeError']}")
 
     print("\n--- controlli disegnati (schermata impostazioni) ---")
     if "snapshotError" in state:
+        # The one tolerated gap: without pycairo the framebuffer cannot be read
+        # at all. Said out loud rather than passed over in silence.
         print(f"  NON VERIFICATO: non sono riuscito a leggere i pixel "
               f"({state['snapshotError']}). Manca python3-gi-cairo?")
+    elif "selectProblems" not in state:
+        # Anything else that stops the chain — a probe that threw, a callback
+        # that never fired, the watchdog firing first — leaves no result, and a
+        # missing result is a failure. A check that can be skipped in silence is
+        # not a check.
+        problems.append(
+            "il controllo sui pixel non è mai arrivato in fondo: la select non è stata verificata"
+        )
     else:
-        problems.extend(state.get("selectProblems") or [])
+        problems.extend(state["selectProblems"])
 
     print()
     if problems:

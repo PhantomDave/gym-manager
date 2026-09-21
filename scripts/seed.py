@@ -89,7 +89,11 @@ LAST_NAMES = [
     "Rinaldi", "Caruso", "Ferrara", "Galli", "Martini", "D'Angelo",
 ]
 
-PAYMENT_METHODS = ["cash", "card", "transfer"]
+# None is in here on purpose. With `paymentMethod` off in src/features.ts the
+# app records no method at all, so a demo database of nothing but cash/card/
+# transfer would show a history the running app can no longer produce — and
+# would never exercise how a method-less row renders.
+PAYMENT_METHODS = ["cash", "card", "transfer", None, None]
 
 
 # --- dates -----------------------------------------------------------------
