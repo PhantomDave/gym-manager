@@ -19,8 +19,8 @@ env:
 jobs:
   linux:
     name: Build the .deb
-    # Same reasoning as CI: build on the oldest supported base so the .deb
-    # installs on Linux Mint 21 as well as 22.
+    # Same reasoning as CI: build against glibc 2.35 (ubuntu-22.04) so the
+    # .deb also runs on anything shipping that version or newer.
     runs-on: ubuntu-22.04
 
     steps:
@@ -95,8 +95,8 @@ jobs:
           path: release-artifacts/*
           retention-days: 14
 
-      # Published as a draft on purpose: someone should install the .deb on a
-      # real Mint box and open it once before this reaches the gym's desktop.
+      # Published as a draft on purpose: someone should install the .deb on
+      # a real machine and open it once before this reaches a deployment.
       - name: Publish draft release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v3
@@ -105,7 +105,7 @@ jobs:
           generate_release_notes: true
           files: release-artifacts/*
           body: |
-            Install on Linux Mint:
+            Install on Debian-based distributions:
 
             ```bash
             sudo apt install ./gym-manager_*_amd64.deb

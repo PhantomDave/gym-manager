@@ -4,31 +4,23 @@ use tauri_plugin_opener::OpenerExt;
 
 use super::{blank_to_none, optional_date};
 use crate::error::{AppError, Result};
-use crate::models::{Document, DocumentInput, DOCUMENT_KINDS};
+use crate::models::{Document, DocumentInput, DocumentKind};
 use crate::storage;
 use crate::AppState;
 
 /// Register a document against a member.
 ///
-/// A health certificate is just `kind = "health_cert"` with `expires_on` set —
+/// A health certificate is just `kind = HealthCert` with `expires_on` set —
 /// there is no separate certificate table, so there is one upload path, one
 /// expiry rule, and one place to fix bugs.
 #[tauri::command]
 pub fn document_add(state: State<AppState>, input: DocumentInput) -> Result<Document> {
-    if !DOCUMENT_KINDS.contains(&input.kind.as_str()) {
-        return Err(
-            AppError::new("document.unknown_kind", "unknown document kind")
-                .with("kind", &input.kind)
-                .with("expected", DOCUMENT_KINDS.join(", ")),
-        );
-    }
-
     let issued_on = optional_date(input.issued_on, "issued_on")?;
     let expires_on = optional_date(input.expires_on, "expires_on")?;
 
     // A certificate with no expiry is the failure mode this whole feature
     // exists to prevent, so it is a hard error rather than a warning.
-    if input.kind == "health_cert" && expires_on.is_none() {
+    if input.kind == DocumentKind::HealthCert && expires_on.is_none() {
         return Err(AppError::new(
             "document.cert_needs_expiry",
             "a health certificate needs an expiry date",
@@ -129,12 +121,12 @@ pub fn document_delete(state: State<AppState>, id: i64) -> Result<()> {
 #[tauri::command]
 pub fn documents_expiring(
     state: State<AppState>,
-    kind: Option<String>,
+    kind: Option<DocumentKind>,
     days: Option<i64>,
 ) -> Result<Vec<ExpiringDocument>> {
     let conn = state.db();
     let days = days.unwrap_or(30);
-    let kind = kind.unwrap_or_else(|| "health_cert".to_string());
+    let kind = kind.unwrap_or(DocumentKind::HealthCert);
 
     let mut stmt = conn.prepare(
         "SELECT d.id, d.member_id, m.first_name, m.last_name, d.kind, d.expires_on
@@ -168,12 +160,13 @@ pub fn documents_expiring(
 }
 
 #[derive(Debug, serde::Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct ExpiringDocument {
     pub id: i64,
     pub member_id: i64,
     pub first_name: String,
     pub last_name: String,
-    pub kind: String,
+    pub kind: DocumentKind,
     pub expires_on: String,
 }

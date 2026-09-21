@@ -37,7 +37,7 @@ pub fn open_in_memory() -> Result<Connection> {
     Ok(conn)
 }
 
-/// Tuned for a 2 GB desktop, not a server.
+/// Tuned to be as light as possible, not for server-class throughput.
 ///
 /// `cache_size = -2000` is 2 MB (the negative form means kibibytes). `mmap_size = 0`
 /// keeps page mapping out of the process's address space, which matters far more

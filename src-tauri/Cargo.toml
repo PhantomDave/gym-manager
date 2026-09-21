@@ -26,11 +26,14 @@ thiserror = "2.0.20"
 [build-dependencies]
 tauri-build = { version = "2.6.3", features = [] }
 
-# Tuned for size, not compile speed: the target machine has 2 GB of RAM and a
-# smaller binary means less to page in.
+# Tuned for size, not compile speed: this app should be as lightweight as
+# possible, and a smaller binary means less to page in.
 [profile.release]
 opt-level = "z"
 lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+[dev-dependencies]
+ts-rs = "12.0.1"

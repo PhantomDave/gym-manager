@@ -20,7 +20,12 @@ import type {
   RenewalPreview,
 } from "../types.js";
 
-const EMPTY_MEMBER: MemberInput = {
+/** The form's own state: every field a plain string, never null — text
+ * inputs have no null state, only blank. Assignable directly to `MemberInput`
+ * (whose optional fields are `string | null`) wherever it is sent to Rust. */
+type MemberFormValues = { [K in keyof MemberInput]: string };
+
+const EMPTY_MEMBER: MemberFormValues = {
   firstName: "",
   lastName: "",
   nationalId: "",
@@ -33,7 +38,7 @@ const EMPTY_MEMBER: MemberInput = {
 };
 
 /** SQLite gives NULL; form inputs want "". */
-function toInput(member: Member): MemberInput {
+function toInput(member: Member): MemberFormValues {
   return {
     firstName: member.firstName,
     lastName: member.lastName,
@@ -58,11 +63,11 @@ export function MemberFormDialog({
   onDone: (id: number, message: string) => void;
 }) {
   const editing = member !== undefined;
-  const [form, setForm] = useState<MemberInput>(editing ? toInput(member) : EMPTY_MEMBER);
+  const [form, setForm] = useState<MemberFormValues>(editing ? toInput(member) : EMPTY_MEMBER);
   const [busy, setBusy] = useState(false);
 
   const set =
-    <K extends keyof MemberInput>(key: K) =>
+    <K extends keyof MemberFormValues>(key: K) =>
     (value: string) =>
       setForm((f) => ({ ...f, [key]: value }));
 

@@ -5,13 +5,14 @@ use tauri::State;
 use super::{blank_to_none, today};
 use crate::dates;
 use crate::error::{AppError, Result};
-use crate::models::Membership;
+use crate::models::{Membership, PaymentMethod};
 use crate::AppState;
 
 /// What a renewal *would* do, so the UI can show the dates and price before
 /// anyone commits. Same code path as the real thing, so the preview can never
 /// disagree with the result.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct RenewalPreview {
     pub starts_on: String,
@@ -50,7 +51,7 @@ pub fn membership_renew(
     member_id: i64,
     price_cents: i64,
     paid_cents: Option<i64>,
-    payment_method: Option<String>,
+    payment_method: Option<PaymentMethod>,
     note: Option<String>,
 ) -> Result<Membership> {
     if price_cents < 0 {
@@ -95,7 +96,7 @@ pub fn membership_renew(
             ends_on.to_string(),
             price_cents,
             paid_cents,
-            blank_to_none(payment_method),
+            payment_method,
             blank_to_none(note),
         ],
     )?;

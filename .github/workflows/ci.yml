@@ -57,9 +57,10 @@ jobs:
 
   rust:
     name: fmt, clippy, test
-    # 22.04 deliberately: it is the oldest base the deployment targets use
-    # (Linux Mint 21), so anything that builds here runs there. Building on a
-    # newer runner would link against a glibc Mint 21 does not have.
+    # 22.04 deliberately: it ships glibc 2.35, the oldest glibc we build
+    # against, so anything that builds here runs on any target at least
+    # that recent. Building on a newer runner would link against a glibc
+    # older targets don't have.
     runs-on: ubuntu-22.04
 
     steps:

@@ -5,8 +5,40 @@
 //! from them, so there is exactly one place the rule lives.
 
 use serde::{Deserialize, Serialize};
+#[cfg(test)]
+use ts_rs::TS;
+
+/// Bind and read a serde-friendly unit enum through SQLite as the same string
+/// its `Serialize` impl already produces, so there is one mapping to a text
+/// value, not two.
+macro_rules! sql_via_serde {
+    ($t:ty) => {
+        impl rusqlite::types::ToSql for $t {
+            fn to_sql(&self) -> rusqlite::Result<rusqlite::types::ToSqlOutput<'_>> {
+                match serde_json::to_value(self) {
+                    Ok(serde_json::Value::String(s)) => Ok(rusqlite::types::ToSqlOutput::from(s)),
+                    _ => Err(rusqlite::Error::ToSqlConversionFailure(
+                        "enum did not serialise to a string".into(),
+                    )),
+                }
+            }
+        }
+
+        impl rusqlite::types::FromSql for $t {
+            fn column_result(
+                value: rusqlite::types::ValueRef<'_>,
+            ) -> rusqlite::types::FromSqlResult<Self> {
+                let s = value.as_str()?;
+                serde_json::from_value(serde_json::Value::String(s.to_owned()))
+                    .map_err(|e| rusqlite::types::FromSqlError::Other(Box::new(e)))
+            }
+        }
+    };
+}
+pub(crate) use sql_via_serde;
 
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(TS))]
 #[serde(rename_all = "camelCase")]
 pub struct MemberRow {
     pub id: i64,
@@ -23,6 +55,7 @@ pub struct MemberRow {
 }
 
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(TS))]
 #[serde(rename_all = "camelCase")]
 pub struct Member {
     pub id: i64,
@@ -39,6 +72,7 @@ pub struct Member {
 }
 
 #[derive(Debug, Default, Deserialize)]
+#[cfg_attr(test, derive(TS))]
 #[serde(rename_all = "camelCase")]
 pub struct MemberInput {
     pub first_name: String,
@@ -52,7 +86,20 @@ pub struct MemberInput {
     pub notes: Option<String>,
 }
 
+/// How a renewal was paid. `Membership.payment_method` is `None` while
+/// `features.paymentMethod` is off — see `src/features.ts`.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(test, derive(TS))]
+#[serde(rename_all = "snake_case")]
+pub enum PaymentMethod {
+    Cash,
+    Card,
+    Transfer,
+}
+sql_via_serde!(PaymentMethod);
+
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(TS))]
 #[serde(rename_all = "camelCase")]
 pub struct Membership {
     pub id: i64,
@@ -61,18 +108,35 @@ pub struct Membership {
     pub ends_on: String,
     pub price_cents: i64,
     pub paid_cents: i64,
-    pub payment_method: Option<String>,
+    pub payment_method: Option<PaymentMethod>,
     pub note: Option<String>,
     pub created_at: String,
     pub voided_at: Option<String>,
 }
 
+/// What a document is. A health certificate is `HealthCert` with `expires_on`
+/// set — there is no separate certificate table.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(test, derive(TS))]
+#[serde(rename_all = "snake_case")]
+pub enum DocumentKind {
+    HealthCert,
+    IdCard,
+    Waiver,
+    Contract,
+    Photo,
+    Receipt,
+    Other,
+}
+sql_via_serde!(DocumentKind);
+
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(TS))]
 #[serde(rename_all = "camelCase")]
 pub struct Document {
     pub id: i64,
     pub member_id: Option<i64>,
-    pub kind: String,
+    pub kind: DocumentKind,
     pub title: Option<String>,
     pub sha256: String,
     pub rel_path: String,
@@ -86,11 +150,11 @@ pub struct Document {
 }
 
 #[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(TS))]
 #[serde(rename_all = "camelCase")]
 pub struct DocumentInput {
     pub member_id: i64,
-    /// One of: health_cert, id_card, waiver, contract, photo, receipt, other.
-    pub kind: String,
+    pub kind: DocumentKind,
     /// Absolute path on disk of the file being imported; it is copied, not moved.
     pub source_path: String,
     pub title: Option<String>,
@@ -100,6 +164,7 @@ pub struct DocumentInput {
 }
 
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(TS))]
 #[serde(rename_all = "camelCase")]
 pub struct MemberDetail {
     pub member: Member,
@@ -110,6 +175,7 @@ pub struct MemberDetail {
 }
 
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(TS))]
 #[serde(rename_all = "camelCase")]
 pub struct Checkin {
     pub id: i64,
@@ -121,6 +187,7 @@ pub struct Checkin {
 
 /// Which slice of the roster the members list should return.
 #[derive(Debug, Default, Deserialize, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(test, derive(TS))]
 #[serde(rename_all = "camelCase")]
 pub enum Filter {
     #[default]
@@ -131,13 +198,3 @@ pub enum Filter {
     CertExpired,
     CertMissing,
 }
-
-pub const DOCUMENT_KINDS: &[&str] = &[
-    "health_cert",
-    "id_card",
-    "waiver",
-    "contract",
-    "photo",
-    "receipt",
-    "other",
-];

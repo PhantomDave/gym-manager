@@ -7,8 +7,19 @@ use crate::error::{AppError, Reason, Result};
 use crate::models::Checkin;
 use crate::AppState;
 
+/// The colour of the entry banner.
+#[derive(Debug, Serialize, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum EntryStatus {
+    Ok,
+    Warn,
+    Block,
+}
+
 /// What the front desk sees before admitting someone.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct EntryCheck {
     pub member_id: i64,
@@ -16,8 +27,7 @@ pub struct EntryCheck {
     pub last_name: String,
     pub paid_through: Option<String>,
     pub cert_through: Option<String>,
-    /// `ok` | `warn` | `block` — the colour of the banner.
-    pub status: String,
+    pub status: EntryStatus,
     /// Translatable codes, never finished sentences — the frontend writes the
     /// prose so the receptionist reads it in her own language.
     pub reasons: Vec<Reason>,
@@ -137,11 +147,11 @@ fn evaluate(conn: &rusqlite::Connection, member_id: i64) -> Result<EntryCheck> {
         .ok();
 
     let status = if blocked {
-        "block"
+        EntryStatus::Block
     } else if warned {
-        "warn"
+        EntryStatus::Warn
     } else {
-        "ok"
+        EntryStatus::Ok
     };
 
     Ok(EntryCheck {
@@ -150,7 +160,7 @@ fn evaluate(conn: &rusqlite::Connection, member_id: i64) -> Result<EntryCheck> {
         last_name,
         paid_through,
         cert_through,
-        status: status.to_string(),
+        status,
         reasons,
         membership_id,
     })
@@ -168,7 +178,7 @@ pub fn checkin_create(
     let check = evaluate(&conn, member_id)?;
     let reason = blank_to_none(override_reason);
 
-    if check.status == "block" && reason.is_none() {
+    if check.status == EntryStatus::Block && reason.is_none() {
         // The frontend already holds the reasons from entry_check, so this
         // carries only the fact that a reason is required.
         return Err(AppError::new(
@@ -202,6 +212,7 @@ pub fn checkin_create(
 }
 
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct CheckinRow {
     pub id: i64,
