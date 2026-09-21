@@ -13,6 +13,13 @@
  */
 
 :root {
+  /* Declared, not assumed. Without this the engine renders every native
+     control with its light theme while the tokens below go dark, which is how
+     the selects ended up painting near-white chrome under near-white text:
+     1.02:1, measured in WebKitGTK. It also fixes the dropdown list, the focus
+     ring and the scrollbars, which the platform draws and CSS cannot reach. */
+  color-scheme: light dark;
+
   /* Colour — light ---------------------------------------------------- */
   --surface-page: #f2f5f7;
   --surface-card: #ffffff;
@@ -257,6 +264,32 @@ textarea {
 }
 textarea { padding: var(--space-2) var(--space-3); }
 .search-lg { min-height: var(--target-comfort); font-size: 19px; }
+
+/* A <select> has to opt out of the native widget or it does not get the rule
+   above: the engine paints the platform control over our background and border
+   while still using our `color` for the text. In dark mode that was white text
+   on the theme's near-white box — invisible, and the date field is three of
+   them. With `appearance: none` the select is drawn by this stylesheet and
+   measures the same as the input beside it.
+   The arrow the native control provided has to be drawn back. Two gradients in
+   `currentColor` rather than an image: it follows the text colour into dark
+   mode by itself, and there is no colour literal and no data: URI for the CSP
+   to worry about. The right padding is what keeps a long option ("Bancomat o
+   carta", "settembre") from running underneath it. */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: calc(var(--space-4) + var(--space-5));
+  background-color: var(--surface-card);
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-size: var(--space-2) var(--space-2);
+  background-position:
+    right calc(var(--space-4) + var(--space-2)) center,
+    right var(--space-4) center;
+  background-repeat: no-repeat;
+}
 
 .toolbar {
   display: flex;

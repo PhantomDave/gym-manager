@@ -107,7 +107,8 @@ export const api = {
     memberId: number;
     priceCents: number;
     paidCents: number;
-    paymentMethod: PaymentMethod;
+    /** null when the payment-method feature is off — see src/features.ts. */
+    paymentMethod: PaymentMethod | null;
     note: string;
   }) => call<Membership>("membership_renew", args),
   membershipVoid: (id: number, reason: string) => call<null>("membership_void", { id, reason }),

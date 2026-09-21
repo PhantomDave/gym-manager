@@ -15,12 +15,21 @@ constraint drives most of the design decisions below.
 - **Memberships** — one calendar month at a time, with the renewal maths handled
   so early renewals stack and lapses don't get backdated.
 - **Health certificates** — expiry tracked, warned about 30 days ahead, and
-  enforced at check-in.
+  shown on the member card and in the badges.
 - **Documents** — ID cards, waivers, contracts, receipts and photos registered
   against a member, stored on disk and opened in the system viewer.
-- **Check-in** — type a name, get a green/amber/red banner, admit or override
-  with a recorded reason.
 - **Backup** — one button, a consistent SQLite snapshot, seven kept.
+
+### Switched off by default
+
+Two features are built but not shown, because this gym does not want them. They
+are flags in [`src/features.ts`](src/features.ts) — flip one, rebuild, and the
+screens come back; the database behind both is untouched either way.
+
+- **Check-in** (`checkins`) — type a name, get a green/amber/red banner, admit
+  or override with a recorded reason, and a list of who came in today.
+- **Payment method** (`paymentMethod`) — whether a renewal was cash, card or
+  transfer, asked at the till and shown in the payment history.
 
 ## Why this stack
 

@@ -15,6 +15,10 @@ const en: Record<CatalogueKey, string> = {
   "today.title": "Today",
   "today.checkin": "Check someone in",
   "today.search_label": "Search for the person coming in",
+  // Used instead of the two above when visits are not recorded — see
+  // src/features.ts. The placeholder below fits both: Enter opens the card.
+  "today.find": "Find a member",
+  "today.find_label": "Search for a member and open their card",
   "today.search_placeholder": "Type a surname and press Enter",
   "today.no_match": "No member found for “{query}”.",
   "today.checked_in": "Came in today",

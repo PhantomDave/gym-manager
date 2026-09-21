@@ -376,6 +376,78 @@ Its `strip` predates the relocation format the modern toolchain emits.
 `NO_STRIP=1` works around it, but since the target is now `deb` only, nothing
 here needs linuxdeploy at all.
 
+## 19. Optional features are build-time flags — 2026-09-21
+
+The gym asked for two things to go: recording who trained and when, and asking
+how a renewal was paid. Neither is a mistake in the code, and another desk would
+want both, so they are switched off in `src/features.ts` rather than deleted.
+
+**Nothing behind a flag was removed.** The `checkin` table, the
+`payment_method` column, `entry_check` / `checkin_create` / `checkins_today` and
+the entry rules in `commands/checkins.rs` are all still there, still tested,
+still backed up. A flag decides what the frontend renders and which commands it
+calls; rows already recorded stay in the database and reappear the moment the
+flag goes back to `true`. That is the same reasoning as decision 6 — this app
+does not delete money or people, and it should not delete their history either
+because a screen was turned off.
+
+**Why build-time constants and not rows in `setting`.** The settings screen is
+operated by a receptionist between customers. A toggle there that removes half
+the main screen is a way to lose the main screen by accident, and no member of
+staff needs it: turning check-ins back on is a decision the owner makes once,
+and it ships in the `.deb`. The cost is that flipping one needs a rebuild, which
+for an app distributed as a `.deb` is the same trip as any other change.
+
+**What the operator loses with `checkins: false`.** The Today screen keeps its
+search box — it is still the fastest way to a member card, and Enter still
+confirms the top result — but it opens the card instead of admitting, and there
+is no entry banner, no override, no "came in today" list and no visits tile.
+Nothing about whether a person *may* train is lost: the membership and
+certificate badges are unchanged and the card still says it in words.
+
+**Revisit if:** a third flag appears. Two is a config module; five would be an
+argument for the `setting` table and a screen behind a password.
+
+## 20. The stylesheet does not own a `<select>` until it says `appearance: none` — 2026-09-21
+
+The select controls were being drawn by the platform, not by `styles.css`. With
+the native appearance left on, WebKitGTK paints the GTK widget over our
+background and border **while still using our `color` for the text**. On a dark
+system theme that is `--surface-ink` (near-white) on the theme's near-white
+control: measured at **1.02:1**, where 4.5:1 is the floor. The date field is
+three of them, and decision 11 exists because that is the field most likely to
+be entered wrong.
+
+`getComputedStyle` could not see it. It reported `background-color:
+rgb(24, 32, 40)` — the colour we asked for — the whole time. Only the rendered
+framebuffer showed white on white, which is decision 17's rule applied to one
+control: read the pixels, not the rule that was supposed to produce them.
+
+Two changes, both measured in WebKitGTK:
+
+| | select fill | text contrast (dark) |
+|---|---|---|
+| before | GTK's `#f4f4f4` | **1.02:1** |
+| `color-scheme` alone | GTK's `#343434` | 10.89:1 |
+| `appearance: none` | `--surface-card` | **14.36:1** |
+
+* **`color-scheme: light dark` on `:root`.** The document never declared that it
+  handles both, so the engine rendered native chrome with the light theme while
+  the tokens went dark. This also reaches the dropdown list, the focus ring and
+  the scrollbars, which CSS cannot style.
+* **`appearance: none` on `select`**, which hands the control to the stylesheet
+  and makes it measure identically to the input beside it. The arrow that the
+  native widget provided is drawn back with two gradients in `currentColor` —
+  not an image, so it follows the text into dark mode on its own, there is no
+  colour literal, and the CSP has no data: URI to allow.
+
+`scripts/smoke.py` now opens the settings screen and reads those pixels back,
+and it fails if a select is not painted the same as the input next to it, or if
+its text drops under 4.5:1. Confirmed red by reverting each half of the fix.
+
+**Revisit if:** a control needs the platform's own rendering. Then it needs its
+own measured contrast, not the assumption that our colours applied.
+
 ## 15. Build on a development machine, not on the target
 
 A release build with `lto = true` and `codegen-units = 1` will thrash swap on
