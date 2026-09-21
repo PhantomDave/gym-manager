@@ -63,7 +63,7 @@ export function DateField({
     <div class="field full">
       <label id={`${id}-label`}>
         {label}
-        {required && <span class="req"> {t("form.required")}</span>}
+        {required && <span class="req"> ({t("form.required")})</span>}
       </label>
       <div class="date-field" role="group" aria-labelledby={`${id}-label`}>
         <select id={id} aria-label={t("date.day")} value={d || ""} onChange={(e) => emit(y, m, num(e))}>

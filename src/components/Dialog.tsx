@@ -63,7 +63,7 @@ export function Dialog({
           </button>
           <button
             type="submit"
-            class={`btn ${danger ? "btn-danger-solid" : "btn-primary"}`}
+            class={`btn btn-lg ${danger ? "btn-danger-solid" : "btn-primary"}`}
             disabled={busy}
           >
             {confirmText}

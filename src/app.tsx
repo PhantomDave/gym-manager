@@ -41,7 +41,7 @@ function App() {
   };
 
   useEffect(() => {
-    setErrorHandler((err) => toasts.push(err.message, { tone: "bad" }));
+    setErrorHandler((err) => toasts.push(err.message, { tone: "blocked" }));
     void loadSettings();
   }, []);
 

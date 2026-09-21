@@ -122,7 +122,7 @@ export function MemberDrawer({
           {certificates.length > 0 ? (
             <DocumentList docs={certificates} settings={settings} onChanged={after} />
           ) : (
-            <div class="callout bad">{t("member.no_certificate")}</div>
+            <div class="callout blocked">{t("member.no_certificate")}</div>
           )}
         </Section>
 

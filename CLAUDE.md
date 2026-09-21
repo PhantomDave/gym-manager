@@ -55,6 +55,15 @@ error until it is translated, which is the intended pressure.
 
 **Never put the SQLite file on a network share.**
 
+**Never invent a colour, size or spacing value.** They come from the design
+system and `styles.css` uses its token names verbatim. A literal px in a rule is
+a bug unless it is a 1px border or a circle. Adding a value means adding a token
+there first.
+
+**Never trust a CSS rule without measuring the result.** The base input selector
+once outranked `.search-lg` and pinned the check-in field to 44px instead of
+52px, silently. Read the rendered height.
+
 ## Dependencies
 
 Latest **stable** release, always. Not pre-releases — Tauri 3 alpha does not
@@ -95,6 +104,6 @@ explicitly, never `undefined`.
 
 - Don't compile a release build on the 2 GB target machine; it will thrash swap.
 - Don't add a CSS framework or component library; the CSP blocks CDNs and the
-  stylesheet is already tuned for this app.
+  stylesheet already carries the design system's tokens.
 - Don't reject a library "because 2 GB" without checking whether it actually
   moves the number. The webview dominates by two orders of magnitude.

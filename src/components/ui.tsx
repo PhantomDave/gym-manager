@@ -2,6 +2,7 @@
 
 import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
+import { t } from "../i18n.js";
 import type { BadgeSpec, Tone } from "../types.js";
 
 export const Badge = ({ tone = "plain", children }: { tone?: Tone; children: ComponentChildren }) => (
@@ -63,7 +64,7 @@ export const Field = ({
   <div class={`field ${full ? "full" : ""}`}>
     <label for={id}>
       {label}
-      {required && <span class="req"> *</span>}
+      {required && <span class="req"> ({t("form.required")})</span>}
     </label>
     <input
       id={id}
@@ -113,7 +114,7 @@ export const Select = ({
 export interface Toast {
   id: number;
   text: string;
-  tone?: "bad";
+  tone?: "blocked";
 }
 
 /**
@@ -145,7 +146,7 @@ export function Toasts({ items, onExpire }: { items: Toast[]; onExpire: (id: num
 export function useToasts() {
   const [items, setItems] = useState<Toast[]>([]);
 
-  const push = (text: string, options: { tone?: "bad" } = {}) =>
+  const push = (text: string, options: { tone?: "blocked" } = {}) =>
     setItems((list) => [...list, { id: Date.now() + Math.random(), text, ...options }]);
 
   const expire = (id: number) => setItems((list) => list.filter((x) => x.id !== id));
