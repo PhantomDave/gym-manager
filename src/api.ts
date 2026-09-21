@@ -25,8 +25,29 @@ import type {
   Settings,
 } from "./types.js";
 
-const { invoke } = window.__TAURI__.core;
-const { open: openFileDialog } = window.__TAURI__.dialog;
+/**
+ * The bridge is read lazily, never destructured at module scope.
+ *
+ * `window.__TAURI__` is injected by the Tauri shell, and this module is
+ * evaluated before anything renders. Destructuring it at the top meant that a
+ * bridge which was missing, late, or short of one plugin threw a TypeError
+ * during module evaluation — before a single component mounted — and the
+ * operator got an empty window with no message. A thrown Error here at least
+ * reaches the boot guard in boot.js and says what is wrong.
+ */
+function bridge(): NonNullable<Window["__TAURI__"]> {
+  const api = window.__TAURI__;
+  if (!api?.core?.invoke) {
+    throw new Error(
+      "Il ponte verso il backend non è disponibile (window.__TAURI__). " +
+        "L'interfaccia è stata aperta fuori dall'applicazione, oppure la shell non si è avviata.",
+    );
+  }
+  return api;
+}
+
+const invoke = <T,>(command: string, args?: Record<string, unknown>): Promise<T> =>
+  bridge().core.invoke<T>(command, args);
 
 /** Carries a message already in the operator's language. */
 export class ApiError extends Error {
@@ -109,7 +130,11 @@ export const api = {
 
 /** Native file picker, restricted to what the document store accepts. */
 export async function pickDocument(): Promise<string | null> {
-  const chosen = await openFileDialog({
+  const dialog = bridge().dialog;
+  if (!dialog?.open) {
+    throw new Error("Il selettore di file non è disponibile in questa finestra.");
+  }
+  const chosen = await dialog.open({
     multiple: false,
     filters: [
       { name: "Documenti", extensions: ["pdf", "jpg", "jpeg", "png", "webp", "tif", "tiff"] },
