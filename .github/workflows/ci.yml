@@ -19,7 +19,7 @@ env:
 
 jobs:
   frontend:
-    name: types and bundle
+    name: types, bundle and smoke test
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v7
@@ -38,6 +38,18 @@ jobs:
 
       - name: Build bundle
         run: bun run build
+
+      # The app ships on WebKitGTK, not Chromium. A bundle that renders in a
+      # Chromium tab can still leave a black window on the desk, so this boots
+      # dist/ in the real engine and fails if nothing draws.
+      - name: Install WebKitGTK and a display
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            python3-gi gir1.2-webkit2-4.1 libwebkit2gtk-4.1-0 xvfb
+
+      - name: Smoke-test the frontend in WebKitGTK
+        run: xvfb-run -a python3 scripts/smoke.py
 
   rust:
     name: fmt, clippy, test

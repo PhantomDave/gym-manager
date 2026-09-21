@@ -288,6 +288,49 @@ negations now sit inside `:where()`, which contributes none. **Measure a target,
 never assume the rule that sets it wins** — this was caught by reading the
 rendered height, not the stylesheet.
 
+## 17. The frontend is verified in WebKitGTK, and a failed boot is visible
+
+Two separate holes let a black window reach the desk, and both are closed.
+
+**The engine.** Every frontend check until now ran in a Chromium pane against a
+stubbed bridge. That proves the bundle renders in Chromium — a different parser,
+a different module loader, a different CSS engine from the WebKitGTK the app
+actually ships on. `scripts/smoke.py` loads `dist/` in WebKitGTK 4.1 through the
+same bindings Tauri uses, stubs the bridge, waits for the mount and reports what
+the DOM contains; it exits non-zero when the window would be blank. It runs in
+CI under `xvfb`.
+
+It was verified by breaking the app on purpose: with a module-scope throw it
+reports three specific failures, and with the app restored it passes. A check
+that cannot fail is not a check.
+
+**The silence.** A failure before the first render left `#app` empty, so the
+operator saw the page background and nothing else — on a machine with no
+developer tools and nobody who could open them. `src/boot.js` is a classic
+script loaded *before* the bundle (the CSP is `script-src 'self'`, so an inline
+handler is blocked, and a handler at the top of `app.tsx` would be too late
+because the bundler evaluates `api.ts` first). It installs error handlers and an
+eight-second watchdog, and paints a readable message with the underlying error.
+
+**The bridge.** `api.ts` used to destructure `window.__TAURI__` at module scope.
+Any missing, late or incomplete bridge therefore threw during module evaluation,
+before a single component mounted. It is now resolved lazily inside `bridge()`
+and raises a sentence the boot guard can show.
+
+### What is fixed versus what is suspected
+
+The smoke test **proves** the frontend boots and renders correctly in WebKitGTK,
+so the bundle was not the cause of the reported black screen. Running the app on
+this machine logged `GDK is not able to create a GL context`, which is a known
+cause of a black WebKitGTK window on Linux and is unrelated to the frontend.
+`main.rs` therefore sets `WEBKIT_DISABLE_COMPOSITING_MODE` and
+`WEBKIT_DISABLE_DMABUF_RENDERER` on Linux unless they are already set. The
+accelerated path buys nothing here — no animation, no canvas, no video — and a
+window that always draws is worth more than it.
+
+**Still unconfirmed:** nobody has watched the window before and after that
+change. It is a strong hypothesis supported by the log, not a reproduction.
+
 ## 15. Build on a development machine, not on the target
 
 A release build with `lto = true` and `codegen-units = 1` will thrash swap on

@@ -30,6 +30,11 @@ to anything non-obvious so it is still legible in three months.
 
 ## Before it goes on the gym's desk
 
+- [ ] **Confirm the black window is gone.** `main.rs` now disables WebKitGTK
+      compositing on Linux because this machine cannot create a GL context.
+      The frontend was proved innocent by `bun run smoke`, but nobody has
+      watched the window before and after the change — that is a hypothesis
+      from a log line, not a reproduction. Launch it and look.
 - [ ] **Run it on the actual Mint machine and measure RSS.** Every memory claim
       in the README is an estimate until someone reads it off that box.
       `ps -o rss= -C gym-manager` after ten minutes of normal use.

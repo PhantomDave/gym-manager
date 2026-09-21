@@ -10,6 +10,9 @@
     <!-- Everything is rendered by Preact. The lang attribute is rewritten by
          i18n.setLanguage() so assistive technology follows the chosen language. -->
     <div id="app"></div>
+    <!-- Loaded first and on purpose: it turns a failed boot into a message
+         instead of an empty window. See src/boot.js. -->
+    <script src="boot.js"></script>
     <script type="module" src="app.js"></script>
   </body>
 </html>

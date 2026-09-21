@@ -17,6 +17,7 @@ no technical background**. Both facts constrain almost every choice.
 bun install                                            # once
 bun run check                                          # tsc --noEmit
 bun run build                                          # src/ -> dist/
+bun run smoke                                          # boots dist/ in WebKitGTK
 cd src-tauri && cargo tauri dev                        # runs the bundle first
 cd src-tauri && cargo test
 cd src-tauri && cargo clippy --all-targets -- -D warnings
@@ -63,6 +64,16 @@ there first.
 **Never trust a CSS rule without measuring the result.** The base input selector
 once outranked `.search-lg` and pinned the check-in field to 44px instead of
 52px, silently. Read the rendered height.
+
+**Never call a frontend change verified because it renders in a browser.** The
+app ships on WebKitGTK; a Chromium tab is a different engine with a different
+parser and a fake bridge. `bun run smoke` boots `dist/` in the real engine and
+fails if the window would be blank. Run it before saying anything works.
+
+**Never read `window.__TAURI__` at module scope.** Destructuring it at the top
+of a module means a missing or late bridge throws during evaluation, before
+anything renders, and the operator gets an empty window. Resolve it inside the
+function that uses it — `bridge()` in `api.ts`.
 
 ## Dependencies
 
