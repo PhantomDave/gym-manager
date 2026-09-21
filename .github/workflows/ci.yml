@@ -106,6 +106,13 @@ jobs:
         working-directory: src-tauri
         run: cargo test --all-features
 
+      # The seeder builds its rows against the shipped migrations. A new NOT
+      # NULL column or a renamed table breaks it, and nobody finds out until
+      # they try to demo the app. It verifies its own output and exits
+      # non-zero, so running it is the whole check.
+      - name: Demo seed script must still match the schema
+        run: python3 scripts/seed.py --db "$RUNNER_TEMP/demo/gym.db"
+
       # Catches a broken tauri.conf.json, a capability referencing a permission
       # that does not exist, or a missing icon — none of which the test suite
       # would notice, because they only fail when the context is generated.
