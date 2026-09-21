@@ -2,7 +2,7 @@
 //!
 //! Scans never go into SQLite as BLOBs. A few hundred members' worth of ID
 //! photos and certificates is several GB; inside the database that means slow
-//! backups, a bloated WAL, and page-cache pressure we cannot afford on 2 GB.
+//! backups, a bloated WAL, and page-cache pressure this app should not cost.
 //!
 //! Files land at `docs/<first two hex chars>/<sha256>.<ext>`, so identical
 //! uploads deduplicate for free and no directory grows unbounded.
@@ -17,7 +17,7 @@ use crate::error::{AppError, Result};
 
 /// Files larger than this are rejected on import. A scanned A4 page is well
 /// under 5 MB; anything past this is a mistake (a video, a whole PDF archive)
-/// and would hurt on a 2 GB machine.
+/// and would hurt on modest hardware.
 pub const MAX_BYTES: u64 = 25 * 1024 * 1024;
 
 const CHUNK: usize = 64 * 1024;

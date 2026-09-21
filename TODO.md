@@ -34,7 +34,7 @@ to anything non-obvious so it is still legible in three months.
 - [x] ~~Confirm the black window is gone~~ — found and fixed: the AppImage
       bundled the build host's graphics libraries and failed with
       `EGL_BAD_PARAMETER`. The release ships the .deb only. See DECISIONS 18.
-- [ ] **Run it on the actual Mint machine and measure RSS.** Every memory claim
+- [ ] **Run it on real target hardware and measure RSS.** Every memory claim
       in the README is an estimate until someone reads it off that box.
       `ps -o rss= -C gym-manager` after ten minutes of normal use.
 - [x] ~~Seed script / demo data~~ — `scripts/seed.py`. Fifty members across
@@ -50,13 +50,17 @@ to anything non-obvious so it is still legible in three months.
       but there is no way to record a later payment against an existing period.
 - [ ] **Empty states and first-run.** Fresh install shows zeroes and no guidance.
       A first-run panel that sets the gym name and monthly price would help.
-- [ ] **Generate `types.ts` from Rust.** It is hand-written today, so a changed
-      struct in `models.rs` drifts silently until something breaks at runtime.
-      `ts-rs` derives the declarations during `cargo test`. This is the single
-      biggest remaining correctness gap.
-- [ ] **Verify the date picker claim on Mint.** `DateField` uses three selects
-      because WebKitGTK is believed not to render `<input type="date">`. Confirm
-      with `/usr/lib/webkit2gtk-4.1/MiniBrowser 'data:text/html,<input type="date">'`
+- [x] ~~Generate `types.ts` from Rust~~ — `ts-rs` derives `src/bindings.ts`
+      from every IPC-facing struct/enum under `#[cfg(test)]`; `cargo test`
+      fails if it drifts from what is committed (`bindings_test.rs`).
+      `src/types.ts` re-exports it plus the handful of frontend-only types.
+      `PaymentMethod`, `DocumentKind`, `EntryStatus` and `Expiry`'s `kind` are
+      now real Rust enums rather than validated strings, so the generated
+      unions stay as precise as the old hand-written ones were.
+- [ ] **Verify the date picker claim on the target distribution.** `DateField`
+      uses three selects because WebKitGTK is believed not to render
+      `<input type="date">`. Confirm with
+      `/usr/lib/webkit2gtk-4.1/MiniBrowser 'data:text/html,<input type="date">'`
       — if it works after all, the component is still fine, but record the fact.
 
 ## Data and correctness

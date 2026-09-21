@@ -11,12 +11,10 @@ make us revisit it.
 
 ## 0. The constraint everything else follows from
 
-The app runs on a **Linux Mint desktop with 2 GB of RAM**, at the front desk of
-a single gym, operated by **people with no technical background**.
-
-Those two facts — 2 GB, non-technical operators — decide almost every question
-below. When they conflict, the operator wins: an app that is light but that a
-receptionist cannot use has failed.
+**This app should be as lightweight and efficient as possible.** That is the
+principle almost every question below answers to — not a specific machine, but
+a standing bias against weight: every dependency, every abstraction, every MB
+has to earn its place.
 
 ### Measured, not assumed
 
@@ -27,14 +25,14 @@ Taken on 2026-09-19 against the real frontend:
 | Frontend total | 42.6 KB (11.4 KB gzip) |
 | 400-member list | 2933 DOM nodes, rendered in **0.9 ms** |
 | JS heap | **1.85 – 3.5 MB** |
-| WebKitGTK process | ~100–150 MB (**estimate — still unverified on the target machine**) |
+| WebKitGTK process | ~100–150 MB (**estimate — still unverified on target hardware**) |
 
 **The consequence people get wrong:** the webview dominates memory by two orders
 of magnitude. A JS bundle of 5 KB versus 60 KB is noise. Never reject a library
-"because 2 GB" without checking whether it moves that number — it almost never
-does. Reject libraries for maintenance cost, not for bytes.
+for its footprint without checking whether it moves that number — it almost
+never does. Reject libraries for maintenance cost, not for bytes.
 
-The 100–150 MB figure is an estimate. Verifying it on the Mint machine is the
+The 100–150 MB figure is an estimate. Verifying it on real hardware is the
 first item in TODO.md and nothing should be built on that number until someone
 reads it off `ps -o rss= -C gym-manager`.
 
@@ -42,9 +40,8 @@ reads it off `ps -o rss= -C gym-manager`.
 
 ## 1. Tauri 2, not Electron
 
-Tauri uses the WebKitGTK already installed on Mint. Electron ships its own
-Chromium and Node and idles around 400 MB, which is a fifth of the machine
-before the app does anything.
+Tauri uses the WebKitGTK already installed on the system. Electron ships its
+own Chromium and Node and idles around 400 MB before the app does anything.
 
 **Revisit if:** the app ever needs to target Windows and macOS seriously and
 WebKitGTK divergence becomes a bigger tax than Electron's memory. Unlikely.
@@ -356,9 +353,10 @@ The `.deb` links against the **system** WebKitGTK, epoxy and Wayland, which is
 exactly what `cargo tauri dev` does and exactly why dev worked. Verified by
 running the release binary: no EGL error, web and network processes alive.
 
-**So the release ships the .deb only.** The target is one Linux Mint machine,
-where .deb is the native format; the AppImage's portability buys nothing there
-and cost a black screen. It is also 80 MB against 2.5 MB, and 244 MB unpacked.
+**So the release ships the .deb only.** The target is a single known desktop
+Linux install, where .deb is the native format; the AppImage's portability
+buys nothing there and cost a black screen. It is also 80 MB against 2.5 MB,
+and 244 MB unpacked.
 
 **Revisit if:** the app ever has to run on a distro without a matching
 WebKitGTK. Reviving the AppImage means excluding the graphics libraries from the
@@ -451,4 +449,5 @@ own measured contrast, not the assumption that our colours applied.
 ## 15. Build on a development machine, not on the target
 
 A release build with `lto = true` and `codegen-units = 1` will thrash swap on
-2 GB for a very long time. Build the `.deb` elsewhere and install it there.
+modest hardware for a very long time. Build the `.deb` elsewhere and install
+it there.
