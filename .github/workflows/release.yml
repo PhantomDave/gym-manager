@@ -18,7 +18,7 @@ env:
 
 jobs:
   linux:
-    name: Build .deb and AppImage
+    name: Build the .deb
     # Same reasoning as CI: build on the oldest supported base so the .deb
     # installs on Linux Mint 21 as well as 22.
     runs-on: ubuntu-22.04
@@ -72,16 +72,19 @@ jobs:
 
       - name: Build bundles
         working-directory: src-tauri
-        run: cargo tauri build --bundles deb,appimage
+        run: cargo tauri build --bundles deb
 
+      # NOT dist/: that is the frontend's build output, and collecting here
+      # would make the guard below count app.js and index.html — it would pass
+      # with zero bundles produced.
       - name: Collect bundles
         id: collect
         run: |
-          mkdir -p dist
-          find src-tauri/target/release/bundle -type f \
-            \( -name '*.deb' -o -name '*.AppImage' \) -exec cp {} dist/ \;
-          ls -lh dist
-          echo "count=$(ls dist | wc -l)" >> "$GITHUB_OUTPUT"
+          mkdir -p release-artifacts
+          find src-tauri/target/release/bundle -type f -name '*.deb' \
+            -exec cp {} release-artifacts/ \;
+          ls -lh release-artifacts
+          echo "count=$(find release-artifacts -name '*.deb' | wc -l)" >> "$GITHUB_OUTPUT"
 
       - name: Fail if nothing was produced
         run: test "${{ steps.collect.outputs.count }}" -gt 0
@@ -89,7 +92,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: gym-manager-linux
-          path: dist/*
+          path: release-artifacts/*
           retention-days: 14
 
       # Published as a draft on purpose: someone should install the .deb on a
@@ -100,7 +103,7 @@ jobs:
         with:
           draft: true
           generate_release_notes: true
-          files: dist/*
+          files: release-artifacts/*
           body: |
             Install on Linux Mint:
 
@@ -110,3 +113,8 @@ jobs:
 
             Data lives in `~/.local/share/dev.phantomdave.gymmanager/`
             (`gym.db`, `docs/`, `backups/`). Back that folder up before upgrading.
+
+            No AppImage: it bundles the build host's graphics stack and fails
+            with `EGL_BAD_PARAMETER` on systems whose mesa differs. The .deb
+            links against the system WebKitGTK, which is the configuration that
+            works. See DECISIONS.md.

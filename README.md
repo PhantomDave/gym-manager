@@ -108,11 +108,17 @@ bun run check
 cd src-tauri && cargo test && cargo clippy --all-targets -- -D warnings
 ```
 
-Build installable bundles:
+Build the installable package:
 
 ```bash
-cd src-tauri && cargo tauri build --bundles deb,appimage
+cd src-tauri && cargo tauri build --bundles deb
 ```
+
+**The .deb, not an AppImage.** The AppImage bundles the build host's graphics
+libraries and fails with `EGL_BAD_PARAMETER` on any machine whose mesa differs —
+a black window with the app running fine behind it. The .deb links against the
+system WebKitGTK, which is what `cargo tauri dev` does and why dev works.
+See [DECISIONS.md](DECISIONS.md).
 
 > **Don't compile on the 2 GB target machine.** A release build with `lto = true`
 > will thrash swap for a very long time. Build on a development machine (or let
@@ -121,8 +127,8 @@ cd src-tauri && cargo tauri build --bundles deb,appimage
 
 ## Releasing
 
-Tag and push; CI builds the bundles and opens a **draft** release with the
-`.deb` and `.AppImage` attached.
+Tag and push; CI builds the package and opens a **draft** release with the
+`.deb` attached.
 
 ```bash
 # bump the version in src-tauri/Cargo.toml AND src-tauri/tauri.conf.json first

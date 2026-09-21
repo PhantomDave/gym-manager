@@ -30,11 +30,9 @@ to anything non-obvious so it is still legible in three months.
 
 ## Before it goes on the gym's desk
 
-- [ ] **Confirm the black window is gone.** `main.rs` now disables WebKitGTK
-      compositing on Linux because this machine cannot create a GL context.
-      The frontend was proved innocent by `bun run smoke`, but nobody has
-      watched the window before and after the change — that is a hypothesis
-      from a log line, not a reproduction. Launch it and look.
+- [x] ~~Confirm the black window is gone~~ — found and fixed: the AppImage
+      bundled the build host's graphics libraries and failed with
+      `EGL_BAD_PARAMETER`. The release ships the .deb only. See DECISIONS 18.
 - [ ] **Run it on the actual Mint machine and measure RSS.** Every memory claim
       in the README is an estimate until someone reads it off that box.
       `ps -o rss= -C gym-manager` after ten minutes of normal use.
