@@ -6,8 +6,11 @@
 //! HTML/CSS/JS with no build step, so the whole runtime cost is one WebKitGTK
 //! webview and a Rust process holding one connection behind a mutex.
 //!
-//! The target machine has 2 GB of RAM. Every dependency here has to earn that.
+//! This app should be as lightweight and efficient as possible. Every
+//! dependency here has to earn its place.
 
+#[cfg(test)]
+mod bindings_test;
 pub mod commands;
 pub mod dates;
 pub mod db;

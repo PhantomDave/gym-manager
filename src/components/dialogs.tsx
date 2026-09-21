@@ -100,19 +100,19 @@ export function MemberFormDialog({
         <Field id="f-last" label={t("field.last_name")} required
           value={form.lastName} onInput={set("lastName")} />
         <Field id="f-nid" label={t("field.national_id")}
-          value={form.nationalId} onInput={set("nationalId")} />
-        <DateField id="f-birth" label={t("field.birth_date")} value={form.birthDate}
+          value={form.nationalId ?? ""} onInput={set("nationalId")} />
+        <DateField id="f-birth" label={t("field.birth_date")} value={form.birthDate ?? ""}
           onInput={set("birthDate")} from={1920} to={thisYear} />
         <Field id="f-phone" label={t("field.phone")} type="tel" inputMode="tel"
-          value={form.phone} onInput={set("phone")} />
+          value={form.phone ?? ""} onInput={set("phone")} />
         <Field id="f-email" label={t("field.email")} type="email" inputMode="email"
-          value={form.email} onInput={set("email")} />
+          value={form.email ?? ""} onInput={set("email")} />
         <Field id="f-ec" label={t("field.emergency_contact")}
-          value={form.emergencyContact} onInput={set("emergencyContact")} />
+          value={form.emergencyContact ?? ""} onInput={set("emergencyContact")} />
         <Field id="f-ep" label={t("field.emergency_phone")} type="tel" inputMode="tel"
-          value={form.emergencyPhone} onInput={set("emergencyPhone")} />
+          value={form.emergencyPhone ?? ""} onInput={set("emergencyPhone")} />
         <Field id="f-notes" label={t("field.notes")} full
-          value={form.notes} onInput={set("notes")} />
+          value={form.notes ?? ""} onInput={set("notes")} />
       </div>
     </Dialog>
   );

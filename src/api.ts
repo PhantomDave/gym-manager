@@ -6,13 +6,13 @@
 
 import { translateCode } from "./i18n.js";
 import type {
+  AppError,
   Checkin,
   CheckinRow,
   Dashboard,
-  Doc,
+  Document,
   DocumentInput,
   EntryCheck,
-  ErrorPayload,
   Expiry,
   ExpiringDocument,
   Filter,
@@ -54,7 +54,7 @@ export class ApiError extends Error {
   readonly code: string;
   readonly params: Record<string, string>;
 
-  constructor(payload: ErrorPayload) {
+  constructor(payload: AppError) {
     super(translateCode(payload, "err."));
     this.name = "ApiError";
     this.code = payload.code;
@@ -77,9 +77,9 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
     // Tauri serialises AppError as { code, message, params }. Anything else is
     // a bug in the bridge rather than a business failure, so it is wrapped with
     // a code that no catalogue maps and falls through to the raw message.
-    const payload: ErrorPayload =
+    const payload: AppError =
       raw !== null && typeof raw === "object" && "code" in raw
-        ? (raw as ErrorPayload)
+        ? (raw as AppError)
         : { code: "unknown", message: String(raw), params: {} };
 
     const error = new ApiError(payload);
@@ -113,7 +113,7 @@ export const api = {
   }) => call<Membership>("membership_renew", args),
   membershipVoid: (id: number, reason: string) => call<null>("membership_void", { id, reason }),
 
-  documentAdd: (input: DocumentInput) => call<Doc>("document_add", { input }),
+  documentAdd: (input: DocumentInput) => call<Document>("document_add", { input }),
   documentOpen: (id: number) => call<null>("document_open", { id }),
   documentDelete: (id: number) => call<null>("document_delete", { id }),
   documentsExpiring: (kind: string, days: number) =>

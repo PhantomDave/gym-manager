@@ -5,22 +5,34 @@
 //! the frontend has to interleave.
 
 use rusqlite::params;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use tauri::State;
 
 use super::today;
 use crate::error::Result;
+use crate::models::sql_via_serde;
 use crate::AppState;
 
+/// What kind of expiry this is, and hence which job it is at the desk.
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Clone, Copy)]
+#[cfg_attr(test, derive(ts_rs::TS))]
+#[serde(rename_all = "snake_case")]
+pub enum ExpiryKind {
+    Membership,
+    Certificate,
+    CertificateMissing,
+}
+sql_via_serde!(ExpiryKind);
+
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct Expiry {
     pub member_id: i64,
     pub first_name: String,
     pub last_name: String,
     pub phone: Option<String>,
-    /// `membership` or `certificate`.
-    pub kind: String,
+    pub kind: ExpiryKind,
     pub date: String,
     /// Negative once the date has passed.
     pub days_left: i64,
@@ -103,7 +115,7 @@ pub fn certificates_missing(state: State<AppState>) -> Result<Vec<Expiry>> {
             first_name: r.get(1)?,
             last_name: r.get(2)?,
             phone: r.get(3)?,
-            kind: "certificate_missing".to_string(),
+            kind: ExpiryKind::CertificateMissing,
             date: String::new(),
             days_left: 0,
         })

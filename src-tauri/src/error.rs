@@ -11,10 +11,13 @@
 use std::collections::BTreeMap;
 
 use serde::{Serialize, Serializer};
+#[cfg(test)]
+use ts_rs::TS;
 
 pub type Result<T> = std::result::Result<T, AppError>;
 
 #[derive(Debug)]
+#[cfg_attr(test, derive(TS))]
 pub struct AppError {
     /// Dotted identifier the frontend translates, e.g. `member.duplicate_id`.
     pub code: &'static str,
@@ -81,6 +84,7 @@ impl Serialize for AppError {
 /// Same contract as `AppError`: the backend decides *what* is wrong, the
 /// frontend decides how to say it.
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(TS))]
 pub struct Reason {
     pub code: &'static str,
     pub params: BTreeMap<&'static str, String>,

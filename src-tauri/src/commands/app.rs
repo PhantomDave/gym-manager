@@ -32,6 +32,7 @@ pub fn settings_set(state: State<AppState>, key: String, value: String) -> Resul
 }
 
 #[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(ts_rs::TS))]
 #[serde(rename_all = "camelCase")]
 pub struct Dashboard {
     pub gym_name: String,

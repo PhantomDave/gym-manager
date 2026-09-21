@@ -8,7 +8,7 @@
 
 import it, { type CatalogueKey } from "./locales/it.js";
 import en from "./locales/en.js";
-import type { Coded, ErrorPayload } from "./types.js";
+import type { AppError, Reason } from "./types.js";
 
 const CATALOGUES = { it, en } as const;
 
@@ -83,7 +83,7 @@ export function t(key: MessageKey, params: Params = {}): string {
  * `prefix` separates the two namespaces Rust sends: `err.` for failures, and
  * nothing for entry-check reasons.
  */
-export function translateCode(payload: Coded | ErrorPayload | null, prefix = ""): string {
+export function translateCode(payload: Reason | AppError | null, prefix = ""): string {
   if (!payload) return t("err.unknown");
 
   const key = `${prefix}${payload.code}` as MessageKey;

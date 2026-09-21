@@ -18,7 +18,7 @@ import {
 } from "../components/dialogs.js";
 import { documentTone, statusOf } from "../lib/status.js";
 import { daysUntil, fmtBytes, fmtDate, fmtMoney } from "../lib/format.js";
-import type { Doc, MemberDetail, RenewalPreview, StatusSettings } from "../types.js";
+import type { Document, MemberDetail, RenewalPreview, StatusSettings } from "../types.js";
 
 type DialogState =
   | { kind: "edit" }
@@ -263,7 +263,7 @@ function DocumentList({
   settings,
   onChanged,
 }: {
-  docs: Doc[];
+  docs: Document[];
   settings: StatusSettings;
   onChanged: (message: string) => void;
 }) {
