@@ -16,7 +16,8 @@ to anything non-obvious so it is still legible in three months.
 - [x] Content-addressed document store with dedup and traversal guards
 - [x] Health certificate as `document.kind = 'health_cert'`
 - [x] Member CRUD, renew, void, archive
-- [x] Check-in with entry rules and recorded overrides
+- [x] Check-in with entry rules and recorded overrides — built and tested,
+      switched off in `src/features.ts` at the gym's request (DECISIONS 19)
 - [x] Dashboard tiles, expiring-certificate list
 - [x] `VACUUM INTO` backup with 7-snapshot retention
 - [x] CI (fmt, clippy, test, build, version consistency), release, audit workflows
@@ -80,11 +81,16 @@ to anything non-obvious so it is still legible in three months.
       schema needs a `plan` table; `dates.rs` needs a period length parameter.
       Do not do this until someone actually asks for it.
 - [ ] **Attendance reporting** — visits per member per month, quiet hours.
+      Needs `features.checkins` back on first; with it off nothing is being
+      recorded to report, and the old rows stop at the day it was switched.
 - [ ] **Revenue report** — takings per month, outstanding balances. All the data
-      is already there; it is one query and a table.
+      is already there; it is one query and a table. A breakdown *by payment
+      method* would need `features.paymentMethod` back on: new renewals record
+      NULL while it is off, so any such split would be blank from that day on.
 - [ ] **Printable receipt** for a renewal. Probably HTML + the system print
       dialog rather than a PDF library.
-- [ ] **Member photo** on the check-in banner, so the desk can verify identity.
+- [ ] **Member photo** on the member card — and on the check-in banner if
+      `features.checkins` is ever back on — so the desk can verify identity.
       Capture from webcam is a much bigger job than file import — start with
       import.
 - [ ] **Bulk import** from whatever spreadsheet the gym is using today. This is

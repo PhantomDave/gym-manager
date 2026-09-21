@@ -1,12 +1,19 @@
 // The screen the desk lives on.
 //
-// The whole flow is: type a surname, press Enter, read the colour, done. Enter
-// confirms the top result, because this happens a hundred times a day and two
-// extra clicks each time adds up to twenty minutes a week.
+// With check-ins ON the whole flow is: type a surname, press Enter, read the
+// colour, done. Enter confirms the top result, because this happens a hundred
+// times a day and two extra clicks each time adds up to twenty minutes a week.
+//
+// With check-ins OFF (the default — see src/features.ts) the search stays, but
+// it is a way to reach a member card rather than a door: Enter opens the card,
+// there is no entry banner, no override, and no list of who came in. Everything
+// that decides whether someone may train — membership and certificate — is
+// still on the card and in the badges; the app simply stops recording visits.
 
 import { useEffect, useRef, useState } from "preact/hooks";
 import { t, translateCode } from "../i18n.js";
 import { api } from "../api.js";
+import { FEATURES } from "../features.js";
 import { Badges, Empty } from "../components/ui.js";
 import { ReasonDialog } from "../components/dialogs.js";
 import { statusOf } from "../lib/status.js";
@@ -51,14 +58,16 @@ export function TodayView({
   const searchRef = useRef<HTMLInputElement>(null);
 
   const reload = async () => {
-    const [d, v, c] = await Promise.all([
+    const [d, c, v] = await Promise.all([
       api.dashboard(),
-      api.checkinsToday(),
       api.documentsExpiring("health_cert", 30),
+      // Not called at all when the feature is off, rather than called and
+      // ignored: a command that is never invoked cannot fail in the background.
+      FEATURES.checkins ? api.checkinsToday() : Promise.resolve<CheckinRow[]>([]),
     ]);
     setDash(d);
-    setVisits(v);
     setCerts(c);
+    setVisits(v);
   };
 
   useEffect(() => {
@@ -79,7 +88,14 @@ export function TodayView({
     return () => clearTimeout(timer);
   }, [query]);
 
-  const inspect = async (memberId: number) => {
+  /** Picking somebody out of the search results. */
+  const choose = async (memberId: number) => {
+    if (!FEATURES.checkins) {
+      setQuery("");
+      setMatches([]);
+      onOpenMember(memberId);
+      return;
+    }
     setEntry(await api.entryCheck(memberId));
     setMatches([]);
   };
@@ -104,9 +120,10 @@ export function TodayView({
     if (event.key !== "Enter") return;
     event.preventDefault();
     // Enter admits a clean member outright; on a blocked one it only opens the
-    // banner, so nobody overrides without having read the reason.
-    if (entry && entry.status !== "block") void admit(entry.memberId);
-    else if (matches[0]) void inspect(matches[0].id);
+    // banner, so nobody overrides without having read the reason. With check-ins
+    // off there is no banner and Enter goes straight to the top result's card.
+    if (FEATURES.checkins && entry && entry.status !== "block") void admit(entry.memberId);
+    else if (matches[0]) void choose(matches[0].id);
   };
 
   const tiles: Tile[] = dash
@@ -116,9 +133,39 @@ export function TodayView({
         { n: dash.expired, label: t("tile.expired"), filter: "expired", tone: "blocked" },
         { n: dash.certExpired, label: t("tile.cert_expired"), filter: "certExpired", tone: "blocked" },
         { n: dash.certMissing, label: t("tile.cert_missing"), filter: "certMissing", tone: "blocked" },
-        { n: dash.checkinsToday, label: t("tile.checkins"), filter: null, tone: "" },
+        ...(FEATURES.checkins
+          ? [{ n: dash.checkinsToday, label: t("tile.checkins"), filter: null, tone: "" as const }]
+          : []),
       ]
     : [];
+
+  const certsPanel = (
+    <div class="panel">
+      <h2>{t("today.certs_expiring")}</h2>
+      {certs.length > 0 ? (
+        <div class="list">
+          {certs.map((c) => {
+            const left = daysUntil(c.expiresOn) ?? 0;
+            return (
+              <button key={c.id} class="row row-button" onClick={() => onOpenMember(c.memberId)}>
+                <div class="grow">
+                  <div class="name">
+                    {c.firstName} {c.lastName}
+                  </div>
+                  <div class="sub">{fmtDate(c.expiresOn)}</div>
+                </div>
+                <span class={`badge ${left < 0 ? "blocked" : "warn"}`}>
+                  {left < 0 ? t("status.cert_expired") : t("status.days_left", { count: left })}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <Empty>{t("today.no_certs_expiring")}</Empty>
+      )}
+    </div>
+  );
 
   return (
     <section class="view">
@@ -142,9 +189,9 @@ export function TodayView({
       </div>
 
       <div class="panel">
-        <h2>{t("today.checkin")}</h2>
+        <h2>{FEATURES.checkins ? t("today.checkin") : t("today.find")}</h2>
         <label class="field-label" for="checkin-search">
-          {t("today.search_label")}
+          {FEATURES.checkins ? t("today.search_label") : t("today.find_label")}
         </label>
         <input
           id="checkin-search"
@@ -158,9 +205,11 @@ export function TodayView({
           onKeyDown={onKeyDown}
         />
 
-        {entry && <EntryBanner entry={entry} onAdmit={requestAdmit} onOpen={onOpenMember} />}
+        {FEATURES.checkins && entry && (
+          <EntryBanner entry={entry} onAdmit={requestAdmit} onOpen={onOpenMember} />
+        )}
 
-        {askReason && entry && (
+        {FEATURES.checkins && askReason && entry && (
           <ReasonDialog
             title={t("entry.override_title")}
             label={t("entry.override_why")}
@@ -179,7 +228,7 @@ export function TodayView({
         {!entry && matches.length > 0 && (
           <div class="list">
             {matches.map((m) => (
-              <button key={m.id} class="row row-button" onClick={() => void inspect(m.id)}>
+              <button key={m.id} class="row row-button" onClick={() => void choose(m.id)}>
                 <div class="grow">
                   <div class="name">
                     {m.firstName} {m.lastName}
@@ -193,60 +242,42 @@ export function TodayView({
         )}
       </div>
 
-      <div class="split">
-        <div class="panel">
-          <h2>{t("today.checked_in")}</h2>
-          {visits.length > 0 ? (
-            <div class="list">
-              {visits.map((v) => (
-                <button key={v.id} class="row row-button" onClick={() => onOpenMember(v.memberId)}>
-                  <div class="grow">
-                    <div class="name">
-                      {v.firstName} {v.lastName}
-                    </div>
-                    <div class="sub">
-                      {fmtTime(v.at)}
-                      {v.overrideReason ? ` · ${v.overrideReason}` : ""}
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <Empty>{t("today.nobody_yet")}</Empty>
-          )}
-        </div>
-
-        <div class="panel">
-          <h2>{t("today.certs_expiring")}</h2>
-          {certs.length > 0 ? (
-            <div class="list">
-              {certs.map((c) => {
-                const left = daysUntil(c.expiresOn) ?? 0;
-                return (
+      {/* Two panels side by side only while there is a second one to show.
+          A lone panel in a two-column grid would sit in half the width with a
+          hole beside it. */}
+      {FEATURES.checkins ? (
+        <div class="split">
+          <div class="panel">
+            <h2>{t("today.checked_in")}</h2>
+            {visits.length > 0 ? (
+              <div class="list">
+                {visits.map((v) => (
                   <button
-                    key={c.id}
+                    key={v.id}
                     class="row row-button"
-                    onClick={() => onOpenMember(c.memberId)}
+                    onClick={() => onOpenMember(v.memberId)}
                   >
                     <div class="grow">
                       <div class="name">
-                        {c.firstName} {c.lastName}
+                        {v.firstName} {v.lastName}
                       </div>
-                      <div class="sub">{fmtDate(c.expiresOn)}</div>
+                      <div class="sub">
+                        {fmtTime(v.at)}
+                        {v.overrideReason ? ` · ${v.overrideReason}` : ""}
+                      </div>
                     </div>
-                    <span class={`badge ${left < 0 ? "blocked" : "warn"}`}>
-                      {left < 0 ? t("status.cert_expired") : t("status.days_left", { count: left })}
-                    </span>
                   </button>
-                );
-              })}
-            </div>
-          ) : (
-            <Empty>{t("today.no_certs_expiring")}</Empty>
-          )}
+                ))}
+              </div>
+            ) : (
+              <Empty>{t("today.nobody_yet")}</Empty>
+            )}
+          </div>
+          {certsPanel}
         </div>
-      </div>
+      ) : (
+        certsPanel
+      )}
     </section>
   );
 }
@@ -255,6 +286,8 @@ export function TodayView({
  * The banner the desk actually reads: a colour plus sentences, never a code.
  * A blocked entry changes the button's wording so nobody admits by muscle
  * memory.
+ *
+ * Only reachable with FEATURES.checkins on.
  */
 function EntryBanner({
   entry,

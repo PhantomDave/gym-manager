@@ -6,6 +6,7 @@
 
 import { useState } from "preact/hooks";
 import { t } from "../i18n.js";
+import { FEATURES } from "../features.js";
 import { api, pickDocument } from "../api.js";
 import { Dialog } from "./Dialog.js";
 import { DateField } from "./DateField.js";
@@ -133,7 +134,11 @@ export function RenewDialog({
 }) {
   const [price, setPrice] = useState(centsToEuros(preview.priceCents));
   const [paid, setPaid] = useState(centsToEuros(preview.priceCents));
-  const [method, setMethod] = useState<PaymentMethod>("cash");
+  // null when the payment-method feature is off: the column is nullable, so the
+  // renewal is recorded with no method rather than a guessed one.
+  const [method, setMethod] = useState<PaymentMethod | null>(
+    FEATURES.paymentMethod ? "cash" : null,
+  );
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -177,13 +182,15 @@ export function RenewDialog({
           autoFocus value={price} onInput={setPrice} />
         <Field id="p-paid" label={`${t("field.paid")} (${currency})`} inputMode="decimal"
           value={paid} onInput={setPaid} />
-        <Select id="p-method" label={t("field.method")} value={method}
-          onInput={(v) => setMethod(v as PaymentMethod)}
-          options={[
-            { value: "cash", label: t("pay.cash") },
-            { value: "card", label: t("pay.card") },
-            { value: "transfer", label: t("pay.transfer") },
-          ]} />
+        {FEATURES.paymentMethod && (
+          <Select id="p-method" label={t("field.method")} value={method ?? "cash"}
+            onInput={(v) => setMethod(v as PaymentMethod)}
+            options={[
+              { value: "cash", label: t("pay.cash") },
+              { value: "card", label: t("pay.card") },
+              { value: "transfer", label: t("pay.transfer") },
+            ]} />
+        )}
         <Field id="p-note" label={t("field.note")} value={note} onInput={setNote} />
       </div>
     </Dialog>

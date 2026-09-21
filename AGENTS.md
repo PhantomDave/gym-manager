@@ -87,6 +87,18 @@ not a success.
 
 ## Rules that are easy to break by accident
 
+### Optional features
+
+**Check-ins and the payment method are switched off**, in `src/features.ts`.
+They are flags, not deletions: the `checkin` table, the `payment_method` column
+and the Rust commands behind both are intact and tested, and a flag flip brings
+the screens back with their history. Do not "finish the job" by removing the
+backend — see DECISIONS 19, and the rule below about never deleting money or
+people.
+
+When adding UI for something behind a flag, guard the render and the call, not
+just the render: a command that is never invoked cannot fail in the background.
+
 ### Money, people and dates
 
 **Never delete money or people.** Memberships are voided with a reason, members
@@ -129,6 +141,13 @@ unless it is a 1px border or a circle. New value means new token, there first.
 **Never use `<input type="date">`.** WebKitGTK may render it as a bare text
 field expecting `YYYY-MM-DD`, which is how a certificate expiry gets entered
 wrong. Use `DateField` (three selects).
+
+**Never let a `<select>` keep the native appearance.** With `appearance: auto`
+WebKitGTK paints the GTK widget over the background and border the stylesheet
+set, while still using our `color` for the text — near-white on near-white in
+dark mode, measured at 1.02:1. `getComputedStyle` reports the colour we asked
+for and sees none of it; only the rendered pixels do. `styles.css` opts every
+select out and draws its own arrow. See DECISIONS 20.
 
 **Never read `window.__TAURI__` at module scope.** Destructuring it at the top
 of a module means a missing or late bridge throws during evaluation, before
@@ -187,6 +206,7 @@ src/                       frontend (TypeScript + Preact)
   boot.js                  loaded BEFORE the bundle; turns a failed boot into a
                            readable message instead of a black window
   types.ts                 the IPC contract — mirrors src-tauri/src/models.rs
+  features.ts              which optional features are switched on
   api.ts                   invoke wrappers + error-code translation
   i18n.ts  locales/        it.ts is the reference; en.ts is typed against it
   lib/status.ts            statusOf(): the ONE place dates become a colour

@@ -7,6 +7,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { t, type MessageKey } from "../i18n.js";
 import { api } from "../api.js";
+import { FEATURES } from "../features.js";
 import { Badges, Empty, Section } from "../components/ui.js";
 import {
   ConfirmDialog,
@@ -162,7 +163,9 @@ export function MemberDrawer({
                     </div>
                     <div class="sub">
                       {fmtMoney(s.paidCents)}
-                      {s.paymentMethod && ` · ${t(`pay.${s.paymentMethod}` as MessageKey)}`}
+                      {FEATURES.paymentMethod &&
+                        s.paymentMethod &&
+                        ` · ${t(`pay.${s.paymentMethod}` as MessageKey)}`}
                       {s.paidCents < s.priceCents &&
                         ` · ${t("pay.owes", { amount: fmtMoney(s.priceCents - s.paidCents) })}`}
                     </div>

@@ -23,6 +23,10 @@ const it = {
   "today.title": "Oggi",
   "today.checkin": "Registra ingresso",
   "today.search_label": "Cerca la persona che sta entrando",
+  // Usate al posto delle due sopra quando gli ingressi non si registrano — vedi
+  // src/features.ts. Il placeholder qui sotto va bene per entrambi: Invio apre la scheda.
+  "today.find": "Trova un iscritto",
+  "today.find_label": "Cerca un iscritto e apri la sua scheda",
   "today.search_placeholder": "Scrivi il cognome e premi Invio",
   "today.no_match": "Nessun iscritto trovato per “{query}”.",
   "today.checked_in": "Entrati oggi",
