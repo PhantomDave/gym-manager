@@ -63,13 +63,13 @@ export function ExpiriesView({
         </div>
       </div>
 
-      <Group title={t("expiries.overdue")} rows={overdue} tone="bad" onOpenMember={onOpenMember} />
+      <Group title={t("expiries.overdue")} rows={overdue} tone="blocked" onOpenMember={onOpenMember} />
 
       {missing.length > 0 && (
         <Group
           title={t("status.cert_missing")}
           rows={missing}
-          tone="bad"
+          tone="blocked"
           dateless
           onOpenMember={onOpenMember}
         />

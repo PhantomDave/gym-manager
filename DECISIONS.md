@@ -249,6 +249,45 @@ the local equivalent, with consent, retention and access obligations.
 - A retention period must be chosen and archived members' documents purged after
   it. **Still open** — see TODO.md.
 
+## 16. The design system owns the visual values — adopted 2026-09-21
+
+The palette, type scale, spacing, radii and target sizes live in a published
+design system, and `src/styles.css` uses **the same token names**, so a change
+there is a find-and-replace here rather than a translation exercise.
+
+Three numbers changed when it was applied, and none of them are taste:
+
+| | was | now | why |
+|---|---|---|---|
+| Target height | 39px | **44px** | WCAG 2.2 SC 2.5.5 (AAA). The 24px AA floor is not enough for someone uneasy with a mouse. |
+| Body / secondary text | 14 / 12px | **16 / 14px** | 14px is now an absolute floor; phone numbers and expiry dates are not captions. |
+| Focus ring | 2px | **3px** | It has to be visible from the other side of the counter. |
+
+`border-control` was darkened to #7d848c specifically to clear 3:1. That is not
+decoration: a text field has to *look* like a text field to someone who never
+learned that a pale rectangle can be typed into.
+
+**Every colour pair was measured, not estimated.** The generator script computes
+the contrast ratios and emits `tokens.json` from the same source, so the check
+and the file cannot drift. 30 pairs pass in both themes; the weakest is 3.46:1
+where 3:1 is needed.
+
+**The third state is called `blocked`, not `bad`.** The word says what it means
+to the desk — this person cannot train — rather than how it feels.
+
+**Colour never travels alone.** Every badge carries a word containing the date.
+Roughly one man in twelve cannot separate the red from the green and reads the
+word instead. A badge that is only a coloured dot is a bug.
+
+### Specificity is part of the contract
+
+`.search-lg` is meant to lift the check-in search to 52px, and for one commit it
+did not: the base input rule was written `input:not(…):not(…):not(…)`, whose
+specificity outranks a single class, so the field silently stayed at 44px. The
+negations now sit inside `:where()`, which contributes none. **Measure a target,
+never assume the rule that sets it wins** — this was caught by reading the
+rendered height, not the stylesheet.
+
 ## 15. Build on a development machine, not on the target
 
 A release build with `lto = true` and `codegen-units = 1` will thrash swap on

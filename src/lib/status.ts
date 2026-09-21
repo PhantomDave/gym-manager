@@ -9,7 +9,7 @@ import { daysUntil, fmtDate } from "./format.js";
 import type { BadgeSpec, StatusSettings, Tone } from "../types.js";
 
 /** Worst tone wins: one red badge makes the whole row red. */
-const RANK: Record<Tone, number> = { ok: 0, plain: 0, warn: 1, bad: 2 };
+const RANK: Record<Tone, number> = { ok: 0, plain: 0, warn: 1, blocked: 2 };
 const worst = (a: Tone, b: Tone): Tone => (RANK[b] > RANK[a] ? b : a);
 
 export interface Status {
@@ -39,9 +39,9 @@ function membershipBadge(
 ): BadgeSpec {
   const days = daysUntil(paidThrough);
 
-  if (days === null) return { tone: "bad", text: t("status.no_membership") };
+  if (days === null) return { tone: "blocked", text: t("status.no_membership") };
   if (days < -graceDays) {
-    return { tone: "bad", text: t("status.expired_on", { date: fmtDate(paidThrough) }) };
+    return { tone: "blocked", text: t("status.expired_on", { date: fmtDate(paidThrough) }) };
   }
   if (days < 0) return { tone: "warn", text: t("status.in_grace") };
   if (days === 0) return { tone: "warn", text: t("status.ends_today") };
@@ -55,8 +55,8 @@ function certificateBadge(
 ): BadgeSpec {
   const days = daysUntil(certThrough);
 
-  if (days === null) return { tone: "bad", text: t("status.cert_missing") };
-  if (days < 0) return { tone: "bad", text: t("status.cert_expired") };
+  if (days === null) return { tone: "blocked", text: t("status.cert_missing") };
+  if (days < 0) return { tone: "blocked", text: t("status.cert_expired") };
   if (days <= certWarnDays) return { tone: "warn", text: t("status.cert_days", { count: days }) };
   return { tone: "ok", text: t("status.cert_valid") };
 }
@@ -65,6 +65,6 @@ function certificateBadge(
 export function documentTone(expiresOn: string | null, certWarnDays: number): Tone {
   const days = daysUntil(expiresOn);
   if (days === null) return "plain";
-  if (days < 0) return "bad";
+  if (days < 0) return "blocked";
   return days <= certWarnDays ? "warn" : "ok";
 }

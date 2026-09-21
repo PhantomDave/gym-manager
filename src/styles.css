@@ -1,53 +1,99 @@
-/* No CSS framework and no build step. The type scale is deliberately larger
-   than a developer tool's: this is read at a desk, often on an old monitor, by
-   someone who is not looking for small print. */
+/* Gym Manager — stylesheet.
+ *
+ * Every value comes from the design system, and the token names match it
+ * exactly, so a change there is a find-and-replace here rather than a
+ * translation exercise.
+ *
+ * The numbers that look generous are not decoration:
+ *   - 44px minimum target is WCAG 2.2 AAA (SC 2.5.5), not the 24px AA floor.
+ *   - 16px body, 14px secondary, and 14px is an absolute floor.
+ *   - Every colour pair was measured; the weakest in the system is 3.46:1
+ *     where 3:1 is required, and the weakest text is 6.14:1 where 4.5 is.
+ * The operators have no technical background and read this standing up.
+ */
 
 :root {
-  --bg: #f4f6f8;
-  --surface: #ffffff;
-  --surface-2: #eef1f5;
-  --border: #d9dee6;
-  --text: #17202a;
-  --muted: #6b7684;
-  --accent: #1f9d74;
-  --accent-text: #ffffff;
-  --ok: #1f9d74;
-  --ok-bg: #e4f5ee;
-  --warn: #b7791f;
-  --warn-bg: #fdf3e0;
-  --bad: #c0392b;
-  --bad-bg: #fbeae8;
-  --radius: 10px;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.06);
+  /* Colour — light ---------------------------------------------------- */
+  --surface-page: #f2f5f7;
+  --surface-card: #ffffff;
+  --surface-sunken: #e6ebef;
+  --surface-ink: #12191f;
+  --surface-ink-muted: #525d68;
+
+  /* Two borders, and they are not interchangeable: subtle separates rows and
+     is decorative, control outlines inputs and buttons and is information. */
+  --border-subtle: #d8dee4;
+  --border-control: #7d848c;
+
+  --accent: #0f6b52;
+  --accent-hover: #0b5643;
+  --accent-ink: #ffffff;
+
+  --state-ok: #0f6b52;
+  --state-ok-surface: #dcf0e8;
+  --state-warn: #8a5200;
+  --state-warn-surface: #fbeed6;
+  --state-blocked: #a8231a;
+  --state-blocked-surface: #fbe4e1;
+
+  --danger-solid: #a8231a;
+  --danger-solid-ink: #ffffff;
+  --focus-ring: #0a4f8a;
+
+  /* Spacing, radius, size --------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --target-min: 44px;
+  --target-comfort: 52px;
+  --target-row: 64px;
+  --focus-width: 3px;
+
+  --shadow-panel: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.08);
+
+  --font-sans: "Inter", "Cantarell", "Segoe UI", system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #12161d;
-    --surface: #1a1f28;
-    --surface-2: #222833;
-    --border: #2d3543;
-    --text: #e7ecf3;
-    --muted: #95a1b2;
-    --accent: #3fbd93;
-    --accent-text: #08130f;
-    --ok: #4ecfa2;
-    --ok-bg: #16302a;
-    --warn: #e0a83c;
-    --warn-bg: #332a15;
-    --bad: #f07167;
-    --bad-bg: #36201e;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+    --surface-page: #0f151b;
+    --surface-card: #182028;
+    --surface-sunken: #212b35;
+    --surface-ink: #eef3f7;
+    --surface-ink-muted: #a3b1bf;
+
+    --border-subtle: #2c3742;
+    --border-control: #6b7580;
+
+    --accent: #4bd0a4;
+    --accent-hover: #68dcb6;
+    --accent-ink: #06251c;
+
+    --state-ok: #4bd0a4;
+    --state-ok-surface: #10352b;
+    --state-warn: #efb443;
+    --state-warn-surface: #3a2c11;
+    --state-blocked: #ff9086;
+    --state-blocked-surface: #3d1f1c;
+
+    --danger-solid: #c32a1e;
+    --danger-solid-ink: #ffffff;
+    --focus-ring: #7cc0ff;
+
+    --shadow-panel: 0 1px 2px rgba(0, 0, 0, 0.5);
   }
 }
 
 * { box-sizing: border-box; }
-
-/* Preact mounts into #app, so the flex row lives there rather than on body. */
-#app {
-  display: flex;
-  height: 100%;
-}
 
 html, body {
   margin: 0;
@@ -56,221 +102,317 @@ html, body {
 }
 
 body {
-  background: var(--bg);
-  color: var(--text);
-  font: 15px/1.55 "Inter", "Cantarell", "Segoe UI", system-ui, sans-serif;
+  background: var(--surface-page);
+  color: var(--surface-ink);
+  font: 400 16px/25px var(--font-sans);
 }
 
-h1 { font-size: 22px; margin: 0; }
-h2 { font-size: 15px; margin: 0 0 12px; letter-spacing: 0.01em; }
-h3 { font-size: 13px; margin: 0 0 8px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
-code { background: var(--surface-2); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
-.muted { color: var(--muted); font-size: 14px; }
+/* Preact mounts into #app, so the flex row lives there rather than on body. */
+#app {
+  display: flex;
+  height: 100%;
+}
 
-/* Sidebar ----------------------------------------------------------------- */
+h1 { font-size: 30px; line-height: 36px; font-weight: 650; margin: 0; }
+h2 { font-size: 19px; line-height: 26px; font-weight: 600; margin: 0 0 var(--space-3); }
+h3 {
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  margin: 0 0 var(--space-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--surface-ink-muted);
+}
+code {
+  background: var(--surface-sunken);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+}
+.muted { color: var(--surface-ink-muted); font-size: 14px; line-height: 21px; }
+
+/* One focus treatment for everything: 3px, and never removed. It has to be
+   visible from the other side of the counter. */
+:focus-visible {
+  outline: var(--focus-width) solid var(--focus-ring);
+  outline-offset: -1px;
+}
+
+/* Sidebar ------------------------------------------------------------- */
 .sidebar {
-  width: 210px;
-  flex: 0 0 210px;
-  background: var(--surface);
-  border-right: 1px solid var(--border);
+  width: 232px;
+  flex: 0 0 232px;
+  background: var(--surface-card);
+  border-right: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
-  padding: 16px 12px;
-  gap: 4px;
+  padding: var(--space-4) var(--space-3);
+  gap: var(--space-1);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   font-weight: 600;
-  padding: 4px 8px 18px;
+  padding: var(--space-1) var(--space-2) var(--space-5);
 }
 
 .brand-mark {
-  width: 22px;
-  height: 22px;
-  border-radius: 6px;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-sm);
   background: var(--accent);
-  flex: 0 0 22px;
+  flex: 0 0 24px;
 }
 
 .nav-item {
-  text-align: left;
-  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  min-height: var(--target-min);
+  padding: 0 var(--space-3);
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: var(--text);
+  color: var(--surface-ink);
   font: inherit;
+  text-align: left;
   cursor: pointer;
 }
-.nav-item:hover { background: var(--surface-2); }
-.nav-item.is-active { background: var(--surface-2); font-weight: 600; }
+.nav-item:hover { background: var(--surface-sunken); }
+.nav-item.is-active { background: var(--surface-sunken); font-weight: 600; }
 
 .sidebar-foot { margin-top: auto; }
 
-/* Content ----------------------------------------------------------------- */
-.content { flex: 1; overflow-y: auto; padding: 24px 28px 48px; }
-/* Views are mounted and unmounted by Preact, so there is nothing to hide. */
+/* Content ------------------------------------------------------------- */
+.content { flex: 1; overflow-y: auto; padding: var(--space-5) var(--space-6) var(--space-6); }
 
 .view-head {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 18px;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
 }
 
 .panel {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 16px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
 }
 
-.split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-@media (max-width: 1000px) { .split { grid-template-columns: 1fr; } }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+@media (max-width: 1040px) { .split { grid-template-columns: 1fr; } }
 
-/* Tiles ------------------------------------------------------------------- */
+/* Tiles --------------------------------------------------------------- */
 .tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(168px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
 .tile {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px;
+  min-height: var(--target-row);
+  background: var(--surface-card);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
   cursor: pointer;
   text-align: left;
   font: inherit;
   color: inherit;
 }
 .tile:hover { border-color: var(--accent); }
-.tile .n { font-size: 26px; font-weight: 650; line-height: 1.1; }
-.tile .k { color: var(--muted); font-size: 13px; margin-top: 2px; }
-.tile.bad .n { color: var(--bad); }
-.tile.warn .n { color: var(--warn); }
+.tile .n { font-size: 32px; line-height: 34px; font-weight: 650; }
+.tile .k { color: var(--surface-ink-muted); font-size: 14px; line-height: 20px; margin-top: var(--space-1); }
+/* The tone colours the figure, never the label: a red 4 draws the eye, a red
+   "Certificato scaduto" is noise. */
+.tile.blocked .n { color: var(--state-blocked); }
+.tile.warn .n { color: var(--state-warn); }
+.tile:disabled { cursor: default; }
+.tile:disabled:hover { border-color: var(--border-control); }
 
-/* Inputs ------------------------------------------------------------------ */
+/* Inputs -------------------------------------------------------------- */
+/* The negations sit inside :where() so they add no specificity: written as
+   plain :not() this rule outranks .search-lg and silently pins the check-in
+   search back to 44px instead of the 52px it is supposed to get. */
 .search,
-input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+input:where(:not([type="checkbox"]):not([type="radio"]):not([type="file"])),
 select,
 textarea {
   width: 100%;
-  padding: 9px 11px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
-  color: var(--text);
+  min-height: var(--target-min);
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  color: var(--surface-ink);
   font: inherit;
 }
-.search-lg { padding: 12px 14px; font-size: 16px; }
-input:focus, select:focus, textarea:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-  border-color: var(--accent);
+textarea { padding: var(--space-2) var(--space-3); }
+.search-lg { min-height: var(--target-comfort); font-size: 19px; }
+
+.toolbar {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-end;
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
 }
+.toolbar .field { margin: 0; }
+.toolbar .field .search { max-width: 320px; }
 
-.toolbar { display: flex; gap: 12px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
-.toolbar .search { max-width: 280px; }
-
-.chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.chips { display: flex; gap: var(--space-2); flex-wrap: wrap; }
 .chip {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--muted);
-  border-radius: 999px;
-  padding: 6px 12px;
+  min-height: var(--target-min);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-control);
+  background: var(--surface-card);
+  color: var(--surface-ink-muted);
+  border-radius: var(--radius-pill);
   font: inherit;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
 }
-.chip.is-active { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.chip.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
 
+/* Buttons ------------------------------------------------------------- */
 .btn {
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--text);
-  border-radius: 8px;
-  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: var(--target-min);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border-control);
+  background: var(--surface-card);
+  color: var(--surface-ink);
+  border-radius: var(--radius-md);
   font: inherit;
+  font-weight: 500;
   cursor: pointer;
 }
-.btn:hover { background: var(--surface-2); }
-.btn-primary { background: var(--accent); border-color: var(--accent); color: var(--accent-text); font-weight: 600; }
-.btn-primary:hover { filter: brightness(1.05); background: var(--accent); }
-.btn-ghost { background: transparent; border-color: transparent; color: var(--muted); }
-.btn-block { width: 100%; }
-.btn-sm { padding: 5px 10px; font-size: 13px; }
-.btn-danger { color: var(--bad); }
+.btn:hover { background: var(--surface-sunken); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
 
-/* Lists ------------------------------------------------------------------- */
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+.btn-ghost { background: transparent; border-color: transparent; color: var(--surface-ink-muted); }
+.btn-ghost:hover { background: var(--surface-sunken); color: var(--surface-ink); }
+
+/* Exactly one button in the app wears this: "Fai entrare lo stesso". */
+.btn-danger-solid {
+  background: var(--danger-solid);
+  border-color: var(--danger-solid);
+  color: var(--danger-solid-ink);
+  font-weight: 600;
+}
+.btn-danger-solid:hover { background: var(--danger-solid); filter: brightness(1.08); }
+
+.btn-danger { color: var(--state-blocked); }
+.btn-block { width: 100%; }
+.btn-lg { min-height: var(--target-comfort); padding: 0 var(--space-5); }
+.btn-sm { min-height: var(--target-min); padding: 0 var(--space-3); font-size: 14px; }
+.btn-icon { min-width: var(--target-min); padding: 0 var(--space-3); font-size: 18px; line-height: 1; }
+
+/* Lists --------------------------------------------------------------- */
 .list { display: flex; flex-direction: column; }
 
 .row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 8px;
-  border-bottom: 1px solid var(--border);
-  cursor: pointer;
+  gap: var(--space-3);
+  min-height: var(--target-row);
+  padding: var(--space-3) var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .row:last-child { border-bottom: 0; }
-.row:hover { background: var(--surface-2); }
 .row .grow { flex: 1; min-width: 0; }
-.row .name { font-weight: 550; }
-.row .sub { color: var(--muted); font-size: 13px; }
+.row .name { font-size: 16px; line-height: 25px; font-weight: 600; }
+.row .sub { color: var(--surface-ink-muted); font-size: 14px; line-height: 21px; }
+.row .name.struck { text-decoration: line-through; opacity: 0.55; }
+.row .phone { color: var(--surface-ink-muted); font-size: 14px; white-space: nowrap; }
 
-.badges { display: flex; gap: 6px; flex-wrap: wrap; }
+/* The whole row is the target, so an imprecise click still lands. A button,
+   not a div with a handler: Tab, Enter and Space come free. */
+.row-button {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--border-subtle);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.row-button:last-child { border-bottom: 0; }
+.row-button:hover { background: var(--surface-sunken); }
+.row-button:focus-visible { outline-offset: -3px; }
+
+/* Badges -------------------------------------------------------------- */
+.badges { display: flex; gap: var(--space-1); flex-wrap: wrap; }
 
 .badge {
   display: inline-flex;
   align-items: center;
-  border-radius: 999px;
-  padding: 3px 9px;
-  font-size: 13px;
-  font-weight: 550;
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-3);
+  font-size: 14px;
+  line-height: 18px;
+  font-weight: 600;
   white-space: nowrap;
 }
-.badge.ok { background: var(--ok-bg); color: var(--ok); }
-.badge.warn { background: var(--warn-bg); color: var(--warn); }
-.badge.bad { background: var(--bad-bg); color: var(--bad); }
-.badge.plain { background: var(--surface-2); color: var(--muted); }
+.badge.ok { background: var(--state-ok-surface); color: var(--state-ok); }
+.badge.warn { background: var(--state-warn-surface); color: var(--state-warn); }
+.badge.blocked { background: var(--state-blocked-surface); color: var(--state-blocked); }
+.badge.plain { background: var(--surface-sunken); color: var(--surface-ink-muted); }
 
-.empty { padding: 20px 8px; color: var(--muted); font-size: 14px; }
+.empty { padding: var(--space-5) var(--space-2); color: var(--surface-ink-muted); font-size: 16px; }
 
-/* Entry check ------------------------------------------------------------- */
-.results { margin-top: 12px; }
-
+/* Entry check --------------------------------------------------------- */
 .entry {
-  border-radius: var(--radius);
-  padding: 14px 16px;
-  margin-top: 10px;
-  border: 1px solid var(--border);
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-4);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-top: var(--space-3);
+  border: 1px solid var(--border-subtle);
 }
-.entry.ok { background: var(--ok-bg); border-color: var(--ok); }
-.entry.warn { background: var(--warn-bg); border-color: var(--warn); }
-.entry.block { background: var(--bad-bg); border-color: var(--bad); }
-.entry .who { font-size: 17px; font-weight: 600; }
-.entry ul { margin: 8px 0 0; padding-left: 18px; font-size: 14px; }
+.entry.ok { background: var(--state-ok-surface); border-color: var(--state-ok); }
+.entry.warn { background: var(--state-warn-surface); border-color: var(--state-warn); }
+.entry.block { background: var(--state-blocked-surface); border-color: var(--state-blocked); }
+.entry .who { font-size: 19px; line-height: 26px; font-weight: 600; }
+.entry ul { margin: var(--space-2) 0 0; padding-left: var(--space-5); }
+.entry li { font-size: 16px; line-height: 25px; }
 
-/* Drawer ------------------------------------------------------------------ */
+.callout { padding: var(--space-3) var(--space-4); border-radius: var(--radius-lg); font-size: 16px; }
+.callout.blocked { background: var(--state-blocked-surface); color: var(--state-blocked); }
+
+/* Drawer -------------------------------------------------------------- */
 .drawer {
   position: fixed;
   top: 0; right: 0; bottom: 0;
-  width: 520px;
+  width: 560px;
   max-width: 92vw;
-  background: var(--surface);
-  border-left: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  background: var(--surface-card);
+  border-left: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-panel);
   display: flex;
   flex-direction: column;
   z-index: 20;
@@ -279,24 +421,20 @@ input:focus, select:focus, textarea:focus {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 12px;
-  padding: 18px 20px 14px;
-  border-bottom: 1px solid var(--border);
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
 }
-.drawer-head h2 { margin: 0 0 8px; font-size: 19px; }
-.drawer-body { overflow-y: auto; padding: 18px 20px 40px; }
-.drawer-section { margin-bottom: 22px; }
-.drawer-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.drawer-head h2 { margin: 0 0 var(--space-2); }
+.drawer-body { overflow-y: auto; padding: var(--space-4) var(--space-5) var(--space-6); }
+.drawer-section { margin-bottom: var(--space-5); }
+.drawer-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-5); }
 
-.kv { display: grid; grid-template-columns: 130px 1fr; gap: 6px 12px; font-size: 13px; }
-.kv dt { color: var(--muted); }
+.kv { display: grid; grid-template-columns: 190px 1fr; gap: var(--space-2) var(--space-3); font-size: 16px; }
+.kv dt { color: var(--surface-ink-muted); }
 .kv dd { margin: 0; }
 
-[hidden] { display: none !important; }
-
-/* Native dialog ------------------------------------------------------------
-   showModal() supplies the focus trap, Escape, the backdrop and returning
-   focus. Only the looks are ours. */
+/* Dialog — native <dialog>: focus trap, Escape and focus return come free. */
 .dialog {
   border: 0;
   padding: 0;
@@ -308,141 +446,99 @@ input:focus, select:focus, textarea:focus {
 .dialog::backdrop { background: rgba(10, 14, 20, 0.5); }
 
 .dialog-card {
-  background: var(--surface);
-  border-radius: 12px;
-  box-shadow: var(--shadow);
-  width: 560px;
-  max-width: calc(100vw - 48px);
+  background: var(--surface-card);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-panel);
+  width: 600px;
+  max-width: calc(100vw - var(--space-6) * 2);
   max-height: 86vh;
   overflow-y: auto;
-  padding: 24px;
+  padding: var(--space-5);
 }
-.dialog-card h2 { font-size: 18px; margin-bottom: 4px; }
-.dialog-body { margin-top: 16px; }
+.dialog-card h2 { margin-bottom: var(--space-1); }
+.dialog-body { margin-top: var(--space-4); }
 .dialog-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 8px;
-  margin-top: 24px;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
 }
 
-/* Date field: three selects, never <input type="date"> — see DECISIONS.md 11 */
-.date-field { display: grid; grid-template-columns: 1fr 1.6fr 1.1fr; gap: 8px; max-width: 420px; }
+/* Forms --------------------------------------------------------------- */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-4); }
+.form-grid .full { grid-column: 1 / -1; }
+@media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+
+.field { min-width: 0; }
+.field label,
+.field-label {
+  display: block;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  color: var(--surface-ink-muted);
+  margin-bottom: var(--space-2);
+}
+.req { font-weight: 400; }
+.hint { font-size: 14px; line-height: 20px; color: var(--surface-ink-muted); margin-top: var(--space-2); }
+
+/* Three selects, never <input type="date">: WebKitGTK can degrade that to a
+   bare text box wanting YYYY-MM-DD. */
+.date-field {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr 1.1fr;
+  gap: var(--space-2);
+  max-width: 440px;
+}
 .date-field select { min-width: 0; }
-.req { color: var(--muted); font-weight: 400; font-size: 12px; }
 
 .period-summary {
   display: flex;
-  gap: 28px;
-  padding: 14px 16px;
-  background: var(--surface-2);
-  border-radius: var(--radius);
-  font-size: 15px;
+  gap: var(--space-6);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-lg);
+  font-size: 16px;
 }
-.period-summary .k { color: var(--muted); margin-right: 6px; }
-
-.callout {
-  padding: 12px 14px;
-  border-radius: var(--radius);
-  font-size: 14px;
-}
-.callout.bad { background: var(--bad-bg); color: var(--bad); }
-
-/* A row that is a button must not look like one. */
-.row-button {
-  width: 100%;
-  border: 0;
-  border-bottom: 1px solid var(--border);
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-}
-.row-button:last-child { border-bottom: 0; }
-.row .name.struck { text-decoration: line-through; opacity: 0.55; }
-.row .phone { color: var(--muted); font-size: 13px; white-space: nowrap; }
-
-.btn-lg { padding: 11px 20px; font-size: 15px; }
-.btn-icon { font-size: 16px; line-height: 1; padding: 6px 10px; }
-.btn-danger-solid {
-  background: var(--bad);
-  border-color: var(--bad);
-  color: #fff;
-  font-weight: 600;
-}
-.btn-danger-solid:hover { background: var(--bad); filter: brightness(1.05); }
+.period-summary .k { color: var(--surface-ink-muted); margin-right: var(--space-2); }
 
 h2 .count {
   display: inline-block;
-  margin-left: 6px;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--surface-2);
-  color: var(--muted);
-  font-size: 12px;
+  margin-left: var(--space-2);
+  padding: 1px var(--space-2);
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  color: var(--surface-ink-muted);
+  font-size: 14px;
 }
-
-.tile:disabled { cursor: default; }
-.tile:disabled:hover { border-color: var(--border); }
-
-.toolbar .field { margin: 0; }
-.toolbar .field .search { max-width: 280px; }
 
 .booting { flex: 1; }
 
-/* Toasts -------------------------------------------------------------------
-   aria-live on the host, so a recorded payment is announced and not only seen. */
+/* Toasts — aria-live on the host, so a recorded payment is announced and not
+   only seen. */
 .toast-host {
   position: fixed;
-  bottom: 20px;
+  bottom: var(--space-5);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   align-items: center;
   z-index: 60;
 }
 .toast {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: var(--text);
-  color: var(--bg);
-  padding: 11px 18px;
-  border-radius: 999px;
-  font-size: 14px;
+  gap: var(--space-3);
+  background: var(--surface-ink);
+  color: var(--surface-page);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-pill);
+  font-size: 16px;
   max-width: 70vw;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-panel);
 }
-.toast.bad { background: var(--bad); color: #fff; }
-.toast .btn-ghost { color: inherit; text-decoration: underline; }
+.toast.blocked { background: var(--danger-solid); color: var(--danger-solid-ink); }
 
 [hidden] { display: none !important; }
-
-/* Forms --------------------------------------------------------------------
-   Restored after the hand-rolled modal was replaced by <dialog>; these rules
-   belong to the fields, not to the dialog that happened to contain them. */
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
-}
-.form-grid .full { grid-column: 1 / -1; }
-@media (max-width: 620px) {
-  .form-grid { grid-template-columns: 1fr; }
-}
-
-.field { min-width: 0; }
-.field label,
-.field-label {
-  display: block;
-  font-size: 13px;
-  color: var(--muted);
-  margin-bottom: 5px;
-}
-.hint { font-size: 13px; color: var(--muted); margin-top: 6px; }
-
-.kv { display: grid; grid-template-columns: 170px 1fr; gap: 7px 12px; font-size: 14px; }
-.kv dt { color: var(--muted); }
-.kv dd { margin: 0; }

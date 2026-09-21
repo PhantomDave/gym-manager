@@ -25,7 +25,7 @@ interface Tile {
   n: number;
   label: string;
   filter: Filter | null;
-  tone: "" | "warn" | "bad";
+  tone: "" | "warn" | "blocked";
 }
 
 export function TodayView({
@@ -113,9 +113,9 @@ export function TodayView({
     ? [
         { n: dash.activeMembers, label: t("tile.active"), filter: "active", tone: "" },
         { n: dash.expiringSoon, label: t("tile.expiring"), filter: "expiring", tone: "warn" },
-        { n: dash.expired, label: t("tile.expired"), filter: "expired", tone: "bad" },
-        { n: dash.certExpired, label: t("tile.cert_expired"), filter: "certExpired", tone: "bad" },
-        { n: dash.certMissing, label: t("tile.cert_missing"), filter: "certMissing", tone: "bad" },
+        { n: dash.expired, label: t("tile.expired"), filter: "expired", tone: "blocked" },
+        { n: dash.certExpired, label: t("tile.cert_expired"), filter: "certExpired", tone: "blocked" },
+        { n: dash.certMissing, label: t("tile.cert_missing"), filter: "certMissing", tone: "blocked" },
         { n: dash.checkinsToday, label: t("tile.checkins"), filter: null, tone: "" },
       ]
     : [];
@@ -235,7 +235,7 @@ export function TodayView({
                       </div>
                       <div class="sub">{fmtDate(c.expiresOn)}</div>
                     </div>
-                    <span class={`badge ${left < 0 ? "bad" : "warn"}`}>
+                    <span class={`badge ${left < 0 ? "blocked" : "warn"}`}>
                       {left < 0 ? t("status.cert_expired") : t("status.days_left", { count: left })}
                     </span>
                   </button>

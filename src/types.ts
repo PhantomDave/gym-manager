@@ -211,7 +211,7 @@ export interface StatusSettings {
   certWarnDays: number;
 }
 
-export type Tone = "ok" | "warn" | "bad" | "plain";
+export type Tone = "ok" | "warn" | "blocked" | "plain";
 
 export interface BadgeSpec {
   tone: Tone;
