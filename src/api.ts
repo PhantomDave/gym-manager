@@ -12,6 +12,7 @@ import type {
   Dashboard,
   Document,
   DocumentInput,
+  DocumentKind,
   EntryCheck,
   Expiry,
   ExpiringDocument,
@@ -116,7 +117,7 @@ export const api = {
   documentAdd: (input: DocumentInput) => call<Document>("document_add", { input }),
   documentOpen: (id: number) => call<null>("document_open", { id }),
   documentDelete: (id: number) => call<null>("document_delete", { id }),
-  documentsExpiring: (kind: string, days: number) =>
+  documentsExpiring: (kind: DocumentKind, days: number) =>
     call<ExpiringDocument[]>("documents_expiring", { kind, days }),
 
   expiriesList: (days: number, overdueDays: number) =>

@@ -20,7 +20,12 @@ import type {
   RenewalPreview,
 } from "../types.js";
 
-const EMPTY_MEMBER: MemberInput = {
+/** The form's own state: every field a plain string, never null — text
+ * inputs have no null state, only blank. Assignable directly to `MemberInput`
+ * (whose optional fields are `string | null`) wherever it is sent to Rust. */
+type MemberFormValues = { [K in keyof MemberInput]: string };
+
+const EMPTY_MEMBER: MemberFormValues = {
   firstName: "",
   lastName: "",
   nationalId: "",
@@ -33,7 +38,7 @@ const EMPTY_MEMBER: MemberInput = {
 };
 
 /** SQLite gives NULL; form inputs want "". */
-function toInput(member: Member): MemberInput {
+function toInput(member: Member): MemberFormValues {
   return {
     firstName: member.firstName,
     lastName: member.lastName,
@@ -58,11 +63,11 @@ export function MemberFormDialog({
   onDone: (id: number, message: string) => void;
 }) {
   const editing = member !== undefined;
-  const [form, setForm] = useState<MemberInput>(editing ? toInput(member) : EMPTY_MEMBER);
+  const [form, setForm] = useState<MemberFormValues>(editing ? toInput(member) : EMPTY_MEMBER);
   const [busy, setBusy] = useState(false);
 
   const set =
-    <K extends keyof MemberInput>(key: K) =>
+    <K extends keyof MemberFormValues>(key: K) =>
     (value: string) =>
       setForm((f) => ({ ...f, [key]: value }));
 
@@ -100,19 +105,19 @@ export function MemberFormDialog({
         <Field id="f-last" label={t("field.last_name")} required
           value={form.lastName} onInput={set("lastName")} />
         <Field id="f-nid" label={t("field.national_id")}
-          value={form.nationalId ?? ""} onInput={set("nationalId")} />
-        <DateField id="f-birth" label={t("field.birth_date")} value={form.birthDate ?? ""}
+          value={form.nationalId} onInput={set("nationalId")} />
+        <DateField id="f-birth" label={t("field.birth_date")} value={form.birthDate}
           onInput={set("birthDate")} from={1920} to={thisYear} />
         <Field id="f-phone" label={t("field.phone")} type="tel" inputMode="tel"
-          value={form.phone ?? ""} onInput={set("phone")} />
+          value={form.phone} onInput={set("phone")} />
         <Field id="f-email" label={t("field.email")} type="email" inputMode="email"
-          value={form.email ?? ""} onInput={set("email")} />
+          value={form.email} onInput={set("email")} />
         <Field id="f-ec" label={t("field.emergency_contact")}
-          value={form.emergencyContact ?? ""} onInput={set("emergencyContact")} />
+          value={form.emergencyContact} onInput={set("emergencyContact")} />
         <Field id="f-ep" label={t("field.emergency_phone")} type="tel" inputMode="tel"
-          value={form.emergencyPhone ?? ""} onInput={set("emergencyPhone")} />
+          value={form.emergencyPhone} onInput={set("emergencyPhone")} />
         <Field id="f-notes" label={t("field.notes")} full
-          value={form.notes ?? ""} onInput={set("notes")} />
+          value={form.notes} onInput={set("notes")} />
       </div>
     </Dialog>
   );

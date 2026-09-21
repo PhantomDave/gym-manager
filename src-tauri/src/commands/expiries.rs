@@ -127,7 +127,21 @@ pub fn certificates_missing(state: State<AppState>) -> Result<Vec<Expiry>> {
 
 #[cfg(test)]
 mod tests {
+    use super::ExpiryKind;
     use crate::db;
+
+    /// The SQL literals `'membership'`/`'certificate'` below have to agree
+    /// with what `ExpiryKind`'s `#[serde(rename_all = "snake_case")]`
+    /// actually produces, and nothing enforces that at compile time — so
+    /// derive the expected strings from the enum itself rather than
+    /// hardcoding them a second time, the way the query does.
+    fn kind_str(kind: ExpiryKind) -> String {
+        serde_json::to_value(kind)
+            .unwrap()
+            .as_str()
+            .unwrap()
+            .to_string()
+    }
 
     /// The UNION ALL query is the kind that breaks silently when a column is
     /// added to the view, so pin its shape against a real schema.
@@ -172,8 +186,9 @@ mod tests {
 
         assert_eq!(rows.len(), 2);
         // The expired certificate sorts before the membership that is still valid.
-        assert_eq!(rows[0].0, "certificate");
+        assert_eq!(rows[0].0, kind_str(ExpiryKind::Certificate));
         assert_eq!(rows[0].1, -3);
+        assert_eq!(rows[1].0, kind_str(ExpiryKind::Membership));
         assert_eq!(rows[1].1, 5);
     }
 }

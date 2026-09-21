@@ -5,6 +5,13 @@
 //!
 //! Run `UPDATE_BINDINGS=1 cargo test bindings` from `src-tauri/` to regenerate
 //! `src/bindings.ts` after changing a struct, then commit the result.
+//!
+//! **New IPC-facing type? Add it to a `declare!` list below.** ts-rs 12 has no
+//! single-file export, so this list is what makes `bindings.ts` one file
+//! instead of one per type — a type given `#[cfg_attr(test, derive(TS))]` but
+//! left off this list compiles and tests green while simply never appearing
+//! in `bindings.ts`, so `tsc` is the only thing that will eventually catch it,
+//! once some consumer imports the missing name.
 
 use ts_rs::{Config, TS};
 

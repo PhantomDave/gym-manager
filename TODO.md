@@ -78,6 +78,15 @@ to anything non-obvious so it is still legible in three months.
       hash. Write a sweep that deletes files no live row references.
 - [ ] **Migration test with real data.** Once `0002_*.sql` exists, add a test
       that migrates a fixture database from v1 rather than only from empty.
+- [ ] **`payment_method`/document `kind` columns have no `CHECK` constraint.**
+      Since #ts-rs, reading either one now goes through a strict enum
+      (`PaymentMethod`/`DocumentKind` via `sql_via_serde!` in `models.rs`) — a
+      row whose stored value doesn't exactly match a variant (a manually
+      edited row, a future migration, old data from before validation
+      existed) now fails the *entire* `member_get`/list call with a
+      `db.error`, where it used to just render oddly. Add a `CHECK` constraint
+      in a migration before this app holds any real data, matching the
+      pattern already used for `price_cents`/`paid_cents`.
 
 ## Features
 

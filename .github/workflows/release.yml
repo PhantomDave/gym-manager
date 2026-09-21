@@ -19,8 +19,8 @@ env:
 jobs:
   linux:
     name: Build the .deb
-    # Same reasoning as CI: build on the oldest supported base so the .deb
-    # installs on the widest range of target distributions.
+    # Same reasoning as CI: build against glibc 2.35 (ubuntu-22.04) so the
+    # .deb also runs on anything shipping that version or newer.
     runs-on: ubuntu-22.04
 
     steps:
