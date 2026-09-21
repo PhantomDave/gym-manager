@@ -36,8 +36,12 @@ to anything non-obvious so it is still legible in three months.
 - [ ] **Run it on the actual Mint machine and measure RSS.** Every memory claim
       in the README is an estimate until someone reads it off that box.
       `ps -o rss= -C gym-manager` after ten minutes of normal use.
-- [ ] **Seed script / demo data.** Fifty fake members across every status
-      combination, so the UI can be judged without hand-entering rows.
+- [x] ~~Seed script / demo data~~ — `scripts/seed.py`. Fifty members across
+      every combination of membership and certificate state, plus partial
+      payments, a voided period, archived members and overridden check-ins. It
+      reads `paid_through` and `cert_through` back out of `member_status` and
+      fails if they are not the dates it asked for, so CI runs it as a check
+      that the schema and the seeder still agree.
 - [ ] **Confirm before archiving works, but there is no un-archive.** Add an
       "Archived" filter and a restore action — someone will archive the wrong
       person in week one.

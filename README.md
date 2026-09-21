@@ -108,6 +108,18 @@ bun run check
 cd src-tauri && cargo test && cargo clippy --all-targets -- -D warnings
 ```
 
+Demo data — fifty fake members across every combination of membership and
+certificate state, so the interface can be judged without typing rows in:
+
+```bash
+python3 scripts/seed.py --db /tmp/demo.db
+```
+
+That seeds a throwaway file. To fill the app's own database instead, drop
+`--db` and add `--reset`, which deletes everything already in it — so never
+point it at the gym's machine. The seeded gym is named "Palestra Demo" and the
+certificates are generated PDFs that say so on the page.
+
 Build the installable package:
 
 ```bash
