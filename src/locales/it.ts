@@ -156,7 +156,9 @@ const it = {
   "form.cancel": "Annulla",
   "form.created": "Iscritto creato.",
   "form.saved": "Dati salvati.",
-  "form.required": "obbligatorio",
+  // Inside parentheses after the label, so it need not agree in gender with
+  // the noun: "Cognome (da compilare)", "Data di scadenza (da compilare)".
+  "form.required": "da compilare",
 
   "archive.title": "Togliere {name} dagli iscritti?",
   "archive.hint":

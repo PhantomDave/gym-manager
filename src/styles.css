@@ -237,11 +237,13 @@ code {
 .tile:disabled:hover { border-color: var(--border-control); }
 
 /* Inputs -------------------------------------------------------------- */
-/* The negations sit inside :where() so they add no specificity: written as
-   plain :not() this rule outranks .search-lg and silently pins the check-in
-   search back to 44px instead of the 52px it is supposed to get. */
+/* One element selector, no negations: the app has no checkbox, radio or file
+   input, so there was nothing to exclude. This also keeps the specificity at a
+   single element, which is what lets .search-lg lift the check-in field to
+   52px — written as input:not(…):not(…):not(…) it outranked that class and
+   silently pinned the field back to 44px. */
 .search,
-input:where(:not([type="checkbox"]):not([type="radio"]):not([type="file"])),
+input,
 select,
 textarea {
   width: 100%;
@@ -396,7 +398,11 @@ textarea { padding: var(--space-2) var(--space-3); }
 }
 .entry.ok { background: var(--state-ok-surface); border-color: var(--state-ok); }
 .entry.warn { background: var(--state-warn-surface); border-color: var(--state-warn); }
-.entry.block { background: var(--state-blocked-surface); border-color: var(--state-blocked); }
+/* EntryStatus arrives from Rust as "block" while every other component spells
+   the state "blocked". Both match, so writing the familiar spelling here can
+   never silently produce an unstyled banner where a red one belongs. */
+.entry.block,
+.entry.blocked { background: var(--state-blocked-surface); border-color: var(--state-blocked); }
 .entry .who { font-size: 19px; line-height: 26px; font-weight: 600; }
 .entry ul { margin: var(--space-2) 0 0; padding-left: var(--space-5); }
 .entry li { font-size: 16px; line-height: 25px; }
