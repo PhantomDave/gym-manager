@@ -1,6 +1,6 @@
 [package]
 name = "gym-manager"
-version = "0.1.0"
+version = "0.1.1"
 description = "Membership, health certificate and document desk for a small gym"
 authors = ["PhantomDave"]
 license = "MIT"
