@@ -136,11 +136,14 @@ Build the installable package:
 cd src-tauri && cargo tauri build --bundles deb
 ```
 
-**The .deb, not an AppImage.** The AppImage bundles the build host's graphics
-libraries and fails with `EGL_BAD_PARAMETER` on any machine whose mesa differs —
-a black window with the app running fine behind it. The .deb links against the
-system WebKitGTK, which is what `cargo tauri dev` does and why dev works.
-See [DECISIONS.md](DECISIONS.md).
+**Install with the .deb, not the AppImage.** The AppImage bundles the build
+host's graphics libraries and, unmodified, fails with `EGL_BAD_PARAMETER` on
+any machine whose mesa differs — a black window with the app running fine
+behind it. The .deb links against the system WebKitGTK, which is what
+`cargo tauri dev` does and why dev works. See [DECISIONS.md](DECISIONS.md).
+The release workflow builds an AppImage too, now, but only so the in-app
+updater has something to install over itself — see "In-app updates and the
+AppImage" below before trusting it for anything else.
 
 > **Don't compile on the target machine.** A release build with `lto = true`
 > will thrash swap on modest hardware for a very long time. Build on a
@@ -166,8 +169,9 @@ Install one on a real machine before trusting it further.
 
 ## Releasing
 
-Tag and push; CI builds the `.deb`, the Windows installer and the macOS disk
-image in parallel and opens a **draft** release with all three attached.
+Tag and push; CI builds the `.deb`, an AppImage, the Windows installer and the
+macOS disk image in parallel and opens a **draft** release with all four
+attached, plus `latest.json` for the in-app updater.
 
 ```bash
 # bump the version in src-tauri/Cargo.toml AND src-tauri/tauri.conf.json first
@@ -175,6 +179,40 @@ git tag v0.2.0 && git push origin v0.2.0
 ```
 
 CI fails the release if those two versions disagree with the tag.
+
+**The release stays a draft until a human promotes it.** Install and check
+each bundle on a real machine of that OS first — nothing here proves the
+Windows or macOS window renders, and the Linux AppImage's fix for
+`EGL_BAD_PARAMETER` (see below) has never been run at all. Only then:
+
+```bash
+gh release edit v0.2.0 --draft=false
+```
+
+`Settings → Updates` in the app checks `/releases/latest`, which GitHub never
+serves for a draft — so nothing reaches a user's machine until this step.
+
+### In-app updates and the AppImage
+
+The updater plugin needs a format it can replace in place: the NSIS installer
+on Windows and an `.app.tar.gz` archive on macOS, both produced automatically
+by `cargo tauri build` once signed. On Linux that format is an AppImage, which
+this project had dropped (see the `.deb`-only note above and DECISIONS 18) —
+the AppImage bundled the build host's `libepoxy` and wayland libraries and hit
+`EGL_BAD_PARAMETER` on a machine whose mesa differed.
+
+The release workflow revives it, this time stripping those libraries out of
+the extracted AppDir before repacking and signing it — the fix the original
+decision called for, never re-enabling the target as it stood. **This has not
+been run on real hardware.** Do not trust the Linux updater path, or install
+the AppImage over the `.deb` install, until someone has. See TODO.md.
+
+Update signing needs a `TAURI_SIGNING_PRIVATE_KEY` repository secret —
+generate a keypair once with `cargo tauri signer generate` (this repo's key
+has no password; add `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` as a secret too if
+a future key does), and put the public key in `plugins.updater.pubkey` in
+`src-tauri/tauri.conf.json`. Losing the private key means every future release
+has to ship a new `pubkey` and nobody's existing install will ever see it.
 
 ## Data and backups
 

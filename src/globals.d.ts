@@ -14,6 +14,14 @@ interface TauriOpenOptions {
   filters?: TauriDialogFilter[];
 }
 
+interface TauriUpdate {
+  version: string;
+  currentVersion: string;
+  body?: string;
+  downloadAndInstall(): Promise<void>;
+  close(): Promise<void>;
+}
+
 interface Window {
   __TAURI__: {
     core: {
@@ -21,6 +29,12 @@ interface Window {
     };
     dialog: {
       open(options?: TauriOpenOptions): Promise<string | string[] | null>;
+    };
+    updater: {
+      check(): Promise<TauriUpdate | null>;
+    };
+    process: {
+      relaunch(): Promise<never>;
     };
   };
 }

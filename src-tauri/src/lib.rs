@@ -2,9 +2,11 @@
 //!
 //! Architecture in one paragraph: a Tauri 2 shell around a single SQLite file,
 //! with documents kept as content-addressed files next to it. There is no
-//! server, no network access, and no background workers. The frontend is static
-//! HTML/CSS/JS with no build step, so the whole runtime cost is one WebKitGTK
-//! webview and a Rust process holding one connection behind a mutex.
+//! server and no background workers. The frontend is static HTML/CSS/JS with
+//! no build step, so the runtime cost is one WebKitGTK webview and a Rust
+//! process holding one connection behind a mutex. The one network call the
+//! app ever makes is the updater checking GitHub Releases — see
+//! `tauri-plugin-updater` below and DECISIONS.md.
 //!
 //! This app should be as lightweight and efficient as possible. Every
 //! dependency here has to earn its place.
@@ -49,6 +51,8 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .setup(|app| {
             // ~/.local/share/gym-manager on Linux.
             let data_dir = app.path().app_data_dir()?;

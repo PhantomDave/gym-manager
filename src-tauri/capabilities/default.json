@@ -1,11 +1,13 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Only what the app actually does: pick a file to import, and hand a stored document to the desktop's own viewer.",
+  "description": "Only what the app actually does: pick a file to import, hand a stored document to the desktop's own viewer, and check GitHub Releases for an update.",
   "windows": ["main"],
   "permissions": [
     "core:default",
     "dialog:allow-open",
-    "opener:allow-open-path"
+    "opener:allow-open-path",
+    "updater:default",
+    "process:allow-restart"
   ]
 }

@@ -18,7 +18,7 @@ env:
 
 jobs:
   linux:
-    name: Build the .deb
+    name: Build the .deb and AppImage
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -67,9 +67,59 @@ jobs:
       - name: Install the Tauri CLI
         run: cargo binstall -y --locked tauri-cli@^2
 
+      # createUpdaterArtifacts is off for this build: the AppImage it would
+      # sign here is not the one that ships (see the repack step below), and
+      # signing before the graphics libraries are stripped would sign bytes
+      # that no longer exist afterwards.
       - name: Build bundles
         working-directory: src-tauri
-        run: cargo tauri build --bundles deb
+        run: >
+          cargo tauri build --bundles deb,appimage
+          --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      # DECISIONS 18: the AppImage bundles the build host's graphics stack
+      # (libepoxy, the wayland libs) and that conflicts with the mesa on a
+      # machine that differs, which is how the last AppImage produced a black
+      # window. Deleting the offending libraries from the extracted AppDir
+      # before repacking is the fix the decision calls for — but only
+      # libepoxy, libwayland-client and libwayland-egl were ever confirmed by
+      # deleting-and-rerunning on the real failure; libwayland-server and
+      # libwayland-cursor are the same family added on suspicion, not proof.
+      #
+      # UNVERIFIED: nobody has run this repacked AppImage on the Linux Mint
+      # machine the .deb targets, or on anything else. Treat the Linux
+      # updater path as unproven until someone does — see TODO.md.
+      - name: Strip the bundled graphics libraries out of the AppImage
+        run: |
+          set -euo pipefail
+          appimage=$(find src-tauri/target/release/bundle/appimage -name '*.AppImage' | head -n1)
+          test -n "$appimage"
+          chmod +x "$appimage"
+          "$appimage" --appimage-extract
+          rm -fv squashfs-root/usr/lib/libepoxy*
+          rm -fv squashfs-root/usr/lib/libwayland-client*
+          rm -fv squashfs-root/usr/lib/libwayland-egl*
+          rm -fv squashfs-root/usr/lib/libwayland-server*
+          rm -fv squashfs-root/usr/lib/libwayland-cursor*
+
+          curl -fsSL -o appimagetool \
+            https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          rm "$appimage"
+          ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root "$appimage"
+
+      # The key has no password, but the empty string still has to be passed
+      # explicitly: an *unset* TAURI_SIGNING_PRIVATE_KEY_PASSWORD makes the
+      # CLI try to prompt for one on stdin, which has no terminal behind it
+      # here and fails with "incorrect updater private key password: No such
+      # device or address" rather than signing.
+      - name: Sign the repacked AppImage
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        run: |
+          appimage=$(find src-tauri/target/release/bundle/appimage -name '*.AppImage' | head -n1)
+          cargo tauri signer sign "$appimage"
 
       # NOT dist/: that is the frontend's build output, and collecting here
       # would make the guard below count app.js and index.html — it would pass
@@ -78,7 +128,8 @@ jobs:
         id: collect
         run: |
           mkdir -p release-artifacts
-          find src-tauri/target/release/bundle -type f -name '*.deb' \
+          find src-tauri/target/release/bundle -type f \
+            \( -name '*.deb' -o -name '*.AppImage' -o -name '*.AppImage.sig' \) \
             -exec cp {} release-artifacts/ \;
           ls -lh release-artifacts
           echo "count=$(find release-artifacts -name '*.deb' | wc -l)" >> "$GITHUB_OUTPUT"
@@ -133,15 +184,22 @@ jobs:
 
       # NSIS, not MSI: it's the target the Tauri docs lead with and needs no
       # extra system dependency — the bundler fetches makensis itself.
+      # createUpdaterArtifacts is on in tauri.conf.json, and the signing key
+      # below is what makes the CLI emit setup.exe.sig alongside it — the
+      # installer itself is the updater bundle on Windows, nothing to repack.
       - name: Build bundles
         working-directory: src-tauri
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         run: cargo tauri build --bundles nsis
 
       - name: Collect bundles
         id: collect
         run: |
           mkdir -p release-artifacts
-          find src-tauri/target/release/bundle -type f -name '*.exe' \
+          find src-tauri/target/release/bundle -type f \
+            \( -name '*.exe' -o -name '*.exe.sig' \) \
             -exec cp {} release-artifacts/ \;
           ls -lh release-artifacts
           echo "count=$(find release-artifacts -name '*.exe' | wc -l)" >> "$GITHUB_OUTPUT"
@@ -192,15 +250,23 @@ jobs:
       # dmg, not app: a .app alone has no install step for the user to run.
       # Unsigned — there is no Apple Developer ID configured — so Gatekeeper
       # will refuse to open it until the user right-clicks > Open once.
+      # createUpdaterArtifacts (on in tauri.conf.json) additionally produces
+      # app.tar.gz + .sig next to the .dmg — that archive, not the .dmg, is
+      # what the updater installs. macos-latest builds arm64 only; there is
+      # no Intel artifact.
       - name: Build bundles
         working-directory: src-tauri
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         run: cargo tauri build --bundles dmg
 
       - name: Collect bundles
         id: collect
         run: |
           mkdir -p release-artifacts
-          find src-tauri/target/release/bundle -type f -name '*.dmg' \
+          find src-tauri/target/release/bundle -type f \
+            \( -name '*.dmg' -o -name '*.app.tar.gz' -o -name '*.app.tar.gz.sig' \) \
             -exec cp {} release-artifacts/ \;
           ls -lh release-artifacts
           echo "count=$(find release-artifacts -name '*.dmg' | wc -l)" >> "$GITHUB_OUTPUT"
@@ -232,7 +298,14 @@ jobs:
 
       - run: ls -lhR release-artifacts
 
+      # Upload the bundles before building latest.json, not alongside it:
+      # GitHub renames an asset whose filename has a space (productName is
+      # "Gym Manager") or other special character, and this action's `assets`
+      # output is the only place that renamed, real download URL is known.
+      # Hand-building the URL from the local filename would silently point
+      # the updater at a link that 404s.
       - uses: softprops/action-gh-release@v3
+        id: release
         with:
           draft: true
           generate_release_notes: true
@@ -247,23 +320,108 @@ jobs:
             Data lives in `~/.local/share/dev.phantomdave.gymmanager/`
             (`gym.db`, `docs/`, `backups/`). Back that folder up before upgrading.
 
-            No AppImage: it bundles the build host's graphics stack and fails
-            with `EGL_BAD_PARAMETER` on systems whose mesa differs. The .deb
-            links against the system WebKitGTK, which is the configuration that
-            works. See DECISIONS.md.
-
             ---
 
             **Windows** (`.exe`, NSIS installer) and **macOS** (`.dmg`) builds
-            are new and are **not signed** and **not verified on screen** —
-            CI only confirms that the bundle was produced, the same way the
-            Linux build is confirmed by `scripts/smoke.py` inside WebKitGTK,
-            but neither Windows nor macOS has an equivalent smoke test yet.
+            are **not signed** with a platform certificate — CI only confirms
+            the bundle was produced, the same way the Linux build is confirmed
+            by `scripts/smoke.py` inside WebKitGTK, but neither Windows nor
+            macOS has an equivalent smoke test yet.
 
             - **Windows**: SmartScreen will warn that the app is from an
               unrecognized publisher ("More info" → "Run anyway").
             - **macOS**: Gatekeeper will refuse to open it the first time.
-              Right-click the app → Open, once, to bypass it.
+              Right-click the app → Open, once, to bypass it. Apple Silicon
+              only — there is no Intel build.
 
             Install one of these on a real machine before trusting it for
             anything more than a look.
+
+            ---
+
+            **In-app updates.** Settings → Updates checks this repo's latest
+            release and installs over itself. The Windows and macOS paths use
+            the installer/app-archive `cargo tauri build` produces directly.
+            The **Linux path is unverified**: it reinstates the AppImage this
+            project dropped after `EGL_BAD_PARAMETER` (DECISIONS 18), this time
+            with the graphics libraries it bundled stripped out in CI before
+            signing — a fix nobody has run on real hardware yet. Do not rely
+            on the in-app updater on Linux until someone has. See TODO.md.
+
+            **Promoting this draft.** The updater only ever sees a published
+            release (`/releases/latest` skips drafts). After installing and
+            checking each bundle by hand:
+
+            ```bash
+            gh release edit ${{ github.ref_name }} --draft=false
+            ```
+
+      # The updater's endpoint is releases/latest/download/latest.json, which
+      # GitHub only serves off a published release — so this manifest sits in
+      # the draft inert, same as the bundles above, until a human promotes it
+      # (see the release body's own note on that).
+      - name: Build the updater manifest
+        id: manifest
+        env:
+          RELEASE_ASSETS: ${{ steps.release.outputs.assets }}
+        run: |
+          python3 - <<'PY'
+          import glob, json, os
+          from datetime import datetime, timezone
+
+          # Two different name spaces, deliberately not conflated: the asset
+          # `name` GitHub returns may be renamed from what was uploaded (a
+          # space in "Gym Manager"'s filenames becomes something else), but
+          # the .sig file on THIS runner's disk still has its original local
+          # name. The download URL has to come from the API; the signature
+          # has to come from the local file the earlier job actually wrote.
+          assets = json.loads(os.environ["RELEASE_ASSETS"])
+
+          def find_url(suffix):
+              for a in assets:
+                  if a["name"].endswith(suffix):
+                      return a["browser_download_url"]
+              return None
+
+          def find_local_signature(suffix):
+              matches = glob.glob(f"release-artifacts/*{suffix}")
+              if not matches:
+                  return None
+              with open(matches[0], encoding="utf-8") as f:
+                  return f.read().strip()
+
+          targets = {
+              "linux-x86_64": (".AppImage", ".AppImage.sig"),
+              "windows-x86_64": ("-setup.exe", "-setup.exe.sig"),
+              "darwin-aarch64": (".app.tar.gz", ".app.tar.gz.sig"),
+          }
+
+          platforms = {}
+          for target, (bin_suffix, sig_suffix) in targets.items():
+              url = find_url(bin_suffix)
+              signature = find_local_signature(sig_suffix)
+              if url and signature:
+                  platforms[target] = {"signature": signature, "url": url}
+
+          tag = os.environ["GITHUB_REF_NAME"]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          manifest = {
+              "version": tag.removeprefix("v"),
+              "notes": f"See https://github.com/{repo}/releases/tag/{tag}",
+              "pub_date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "platforms": platforms,
+          }
+          with open("release-artifacts/latest.json", "w", encoding="utf-8") as f:
+              json.dump(manifest, f, indent=2)
+          print(json.dumps(manifest, indent=2))
+
+          missing = set(targets) - platforms.keys()
+          if missing:
+              print(f"::warning::latest.json is missing platforms: {sorted(missing)}")
+          PY
+
+      - name: Upload the updater manifest
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          files: release-artifacts/latest.json
