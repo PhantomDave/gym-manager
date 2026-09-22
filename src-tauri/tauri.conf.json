@@ -26,9 +26,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "deb"
-    ],
+    "targets": "all",
     "category": "Business",
     "shortDescription": "Gym membership desk",
     "longDescription": "Track month-long memberships, health certificate expiry and member documents. Local-first, no server, no network access.",
@@ -37,7 +35,8 @@
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.png",
-      "icons/icon.ico"
+      "icons/icon.ico",
+      "icons/icon.icns"
     ],
     "linux": {
       "deb": {

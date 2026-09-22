@@ -122,8 +122,17 @@ to anything non-obvious so it is still legible in three months.
       decide rather than drift.
 - [ ] **Retention policy for health data.** Pick the statutory period, then add
       a purge for archived members' documents past it.
-- [ ] **Extend the release matrix** if it ever needs to run on Windows or macOS.
-      The workflow builds Linux only today.
+- [ ] **Code signing for Windows/macOS.** The release matrix now builds an
+      NSIS installer and a `.dmg` alongside the `.deb` (see DECISIONS.md), but
+      both are unsigned: SmartScreen and Gatekeeper both warn on first launch.
+      Needs a Windows code-signing cert (or Azure Trusted Signing) and an
+      Apple Developer ID + notarization credentials as repo secrets — neither
+      exists yet.
+- [ ] **A real smoke test for Windows/macOS.** `scripts/smoke.py` only proves
+      the frontend renders in WebKitGTK. The release workflow's Windows and
+      macOS jobs only prove the bundle *builds*; nothing has opened the
+      window on WebView2 or WKWebView. Install one on real hardware before
+      trusting it — see the release notes' own disclaimer.
 
 ## Known, not actionable yet
 

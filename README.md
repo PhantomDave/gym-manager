@@ -147,10 +147,27 @@ See [DECISIONS.md](DECISIONS.md).
 > development machine (or let the release workflow do it) and install the
 > resulting `.deb` on the deployment machine.
 
+### Windows and macOS
+
+The release workflow also builds a Windows installer and a macOS disk image,
+each on its own OS runner — there is no cross-compiling from Linux. To build
+one locally, run the equivalent of the steps above on that OS (no `apt`
+packages needed; Windows already has WebView2, macOS already has the Xcode
+command line tools):
+
+```bash
+cargo tauri build --bundles nsis   # Windows: target/release/bundle/nsis/*.exe
+cargo tauri build --bundles dmg    # macOS:   target/release/bundle/dmg/*.dmg
+```
+
+Neither is signed, and neither has anything like `scripts/smoke.py` behind
+it — CI only confirms the bundle was produced, not that the window renders.
+Install one on a real machine before trusting it further.
+
 ## Releasing
 
-Tag and push; CI builds the package and opens a **draft** release with the
-`.deb` attached.
+Tag and push; CI builds the `.deb`, the Windows installer and the macOS disk
+image in parallel and opens a **draft** release with all three attached.
 
 ```bash
 # bump the version in src-tauri/Cargo.toml AND src-tauri/tauri.conf.json first
