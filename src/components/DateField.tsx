@@ -8,6 +8,7 @@
 // Three selects cannot be mistyped, need no locale parsing, and behave the same
 // on every engine. See DECISIONS.md 11.
 
+import { useState } from "preact/hooks";
 import { t, type MessageKey } from "../i18n.js";
 import { pad } from "../lib/format.js";
 
@@ -40,14 +41,23 @@ export function DateField({
   const firstYear = from ?? thisYear - 5;
   const lastYear = to ?? thisYear + 15;
 
-  const [y = 0, m = 0, d = 0] = (value || "").split("-").map((n) => parseInt(n, 10) || 0);
+  // Held locally rather than re-derived from `value` on every render: `value`
+  // only carries a *complete* date (see emit below), so picking the day before
+  // the month and year are set would otherwise have nothing to display and the
+  // choice would appear to not register.
+  const [{ y, m, d }, setParts] = useState(() => {
+    const [y = 0, m = 0, d = 0] = (value || "").split("-").map((n) => parseInt(n, 10) || 0);
+    return { y, m, d };
+  });
   const maxDay = daysIn(y, m);
 
   const emit = (year: number, month: number, day: number) => {
-    if (!year || !month || !day) return onInput("");
     // Clamp rather than blank the field: switching from February to a month
     // with a 31st should keep the day the operator already chose.
-    onInput(`${year}-${pad(month)}-${pad(Math.min(day, daysIn(year, month)))}`);
+    const clamped = year && month && day ? Math.min(day, daysIn(year, month)) : day;
+    setParts({ y: year, m: month, d: clamped });
+    if (!year || !month || !clamped) return onInput("");
+    onInput(`${year}-${pad(month)}-${pad(clamped)}`);
   };
 
   const years: number[] = [];
