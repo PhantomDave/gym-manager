@@ -108,9 +108,15 @@ jobs:
           rm "$appimage"
           ARCH=x86_64 ./appimagetool --appimage-extract-and-run squashfs-root "$appimage"
 
+      # The key has no password, but the empty string still has to be passed
+      # explicitly: an *unset* TAURI_SIGNING_PRIVATE_KEY_PASSWORD makes the
+      # CLI try to prompt for one on stdin, which has no terminal behind it
+      # here and fails with "incorrect updater private key password: No such
+      # device or address" rather than signing.
       - name: Sign the repacked AppImage
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         run: |
           appimage=$(find src-tauri/target/release/bundle/appimage -name '*.AppImage' | head -n1)
           cargo tauri signer sign "$appimage"
@@ -185,6 +191,7 @@ jobs:
         working-directory: src-tauri
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         run: cargo tauri build --bundles nsis
 
       - name: Collect bundles
@@ -251,6 +258,7 @@ jobs:
         working-directory: src-tauri
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
         run: cargo tauri build --bundles dmg
 
       - name: Collect bundles
