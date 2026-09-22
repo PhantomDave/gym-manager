@@ -130,6 +130,33 @@ export const api = {
   checkinsToday: () => call<CheckinRow[]>("checkins_today"),
 };
 
+export interface UpdateInfo {
+  version: string;
+  currentVersion: string;
+  notes?: string;
+}
+
+/** The update found by the last `checkForUpdate`, held so `installUpdate` can act on it. */
+let pendingUpdate: TauriUpdate | null = null;
+
+/** Ask GitHub Releases whether a newer build exists. `null` means already current. */
+export async function checkForUpdate(): Promise<UpdateInfo | null> {
+  const update = await bridge().updater.check();
+  if (pendingUpdate && pendingUpdate !== update) await pendingUpdate.close();
+  pendingUpdate = update;
+  if (!update) return null;
+  return { version: update.version, currentVersion: update.currentVersion, notes: update.body };
+}
+
+/** Download and install the update found by `checkForUpdate`, then restart into it. */
+export async function installUpdate(): Promise<void> {
+  if (!pendingUpdate) {
+    throw new Error("Nessun aggiornamento in attesa: chiamare prima checkForUpdate().");
+  }
+  await pendingUpdate.downloadAndInstall();
+  await bridge().process.relaunch();
+}
+
 /** Native file picker, restricted to what the document store accepts. */
 export async function pickDocument(): Promise<string | null> {
   const dialog = bridge().dialog;

@@ -232,6 +232,15 @@ const it = {
     "Salva una copia della banca dati e tiene le ultime sette. I documenti stanno nella cartella docs/ e vanno copiati a parte su una chiavetta.",
   "settings.backup_now": "Fai una copia adesso",
   "settings.backup_done": "Copia salvata in {path}",
+  "settings.updates": "Aggiornamenti",
+  "settings.updates_hint": "Controlla su GitHub se è disponibile una nuova versione dell'app.",
+  "settings.update_check": "Controlla aggiornamenti",
+  "settings.update_checking": "Controllo in corso…",
+  "settings.update_none": "Hai già la versione più recente.",
+  "settings.update_available": "Disponibile la versione {version}.",
+  "settings.update_install": "Installa e riavvia",
+  "settings.update_installing": "Scaricamento e installazione…",
+  "settings.update_failed": "Controllo aggiornamenti non riuscito: {message}",
 
   // Errors (codes come from the backend) -----------------------------------
   "err.db.error":

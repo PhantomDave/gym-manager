@@ -29,7 +29,8 @@
     "targets": "all",
     "category": "Business",
     "shortDescription": "Gym membership desk",
-    "longDescription": "Track month-long memberships, health certificate expiry and member documents. Local-first, no server, no network access.",
+    "longDescription": "Track month-long memberships, health certificate expiry and member documents. Local-first, no server. The only network call it makes is checking GitHub Releases for an update.",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -44,6 +45,17 @@
           "libwebkit2gtk-4.1-0",
           "libgtk-3-0"
         ]
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM2QUI3Rjk5RDc3MEFCNUMKUldSY3EzRFhtWCtyeGo0SWFWSkROWlBRNUo3VytMODVMSXJ4VFpydEVwWmlmRGVnSXcyUFBndkUK",
+      "endpoints": [
+        "https://github.com/PhantomDave/gym-manager/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
       }
     }
   }

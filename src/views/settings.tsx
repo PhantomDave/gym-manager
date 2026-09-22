@@ -5,10 +5,18 @@
 
 import { useEffect, useState } from "preact/hooks";
 import { LANGUAGES, t } from "../i18n.js";
-import { api } from "../api.js";
+import { api, checkForUpdate, installUpdate, type UpdateInfo } from "../api.js";
 import { Field, Select } from "../components/ui.js";
 import { centsToEuros, eurosToCents } from "../lib/format.js";
 import type { Settings } from "../types.js";
+
+type UpdateState =
+  | { kind: "idle" }
+  | { kind: "checking" }
+  | { kind: "none" }
+  | { kind: "available"; info: UpdateInfo }
+  | { kind: "installing" }
+  | { kind: "failed"; message: string };
 
 export function SettingsView({
   settings,
@@ -22,8 +30,29 @@ export function SettingsView({
   onToast: (message: string) => void;
 }) {
   const [values, setValues] = useState<Settings>(settings);
+  const [update, setUpdate] = useState<UpdateState>({ kind: "idle" });
 
   useEffect(() => setValues(settings), [settings]);
+
+  const runUpdateCheck = async () => {
+    setUpdate({ kind: "checking" });
+    try {
+      const info = await checkForUpdate();
+      setUpdate(info ? { kind: "available", info } : { kind: "none" });
+    } catch (err) {
+      setUpdate({ kind: "failed", message: err instanceof Error ? err.message : String(err) });
+    }
+  };
+
+  const runInstall = async () => {
+    setUpdate({ kind: "installing" });
+    try {
+      await installUpdate();
+      // The app relaunches into the new version; nothing after this runs.
+    } catch (err) {
+      setUpdate({ kind: "failed", message: err instanceof Error ? err.message : String(err) });
+    }
+  };
 
   const save = async (key: string, value: string) => {
     setValues((v) => ({ ...v, [key]: value }));
@@ -96,6 +125,33 @@ export function SettingsView({
         >
           {t("settings.backup_now")}
         </button>
+      </div>
+
+      <div class="panel">
+        <h2>{t("settings.updates")}</h2>
+        <p class="muted">{t("settings.updates_hint")}</p>
+        {update.kind === "available" ? (
+          <>
+            <p>{t("settings.update_available", { version: update.info.version })}</p>
+            <button class="btn btn-primary" onClick={() => void runInstall()}>
+              {t("settings.update_install")}
+            </button>
+          </>
+        ) : (
+          <button
+            class="btn btn-primary"
+            disabled={update.kind === "checking" || update.kind === "installing"}
+            onClick={() => void runUpdateCheck()}
+          >
+            {t("settings.update_check")}
+          </button>
+        )}
+        {update.kind === "checking" && <p class="muted">{t("settings.update_checking")}</p>}
+        {update.kind === "installing" && <p class="muted">{t("settings.update_installing")}</p>}
+        {update.kind === "none" && <p class="muted">{t("settings.update_none")}</p>}
+        {update.kind === "failed" && (
+          <p class="muted">{t("settings.update_failed", { message: update.message })}</p>
+        )}
       </div>
     </section>
   );

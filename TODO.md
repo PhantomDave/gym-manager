@@ -117,9 +117,27 @@ to anything non-obvious so it is still legible in three months.
       on startup if the newest snapshot is older than a day.
 - [ ] **Restore path.** There is a backup button and no documented way back.
       Write the three commands down in the README and test them once.
-- [ ] **Auto-update.** Tauri's updater needs a signing key and somewhere to host
-      the manifest. For one machine, `apt install ./the-new.deb` may be enough —
-      decide rather than drift.
+- [~] **Auto-update**, wired to GitHub Releases: `tauri-plugin-updater` +
+      `tauri-plugin-process`, a `Settings → Updates` panel, and a signing
+      keypair (`cargo tauri signer generate`, private key + password as repo
+      secrets, public key in `tauri.conf.json`). The release workflow builds
+      the signed installer/`.app.tar.gz`/AppImage the updater needs and writes
+      `latest.json` from the real, GitHub-assigned asset URLs — see
+      "Releasing" in the README.
+      - [ ] **The Linux path is unverified.** It needed reviving the AppImage
+        this project dropped for `EGL_BAD_PARAMETER` (DECISIONS 18); CI now
+        strips the bundled `libepoxy`/wayland libraries out before repacking
+        and signing it, which is the fix the decision called for — but nobody
+        has run the result on the Linux Mint machine the `.deb` targets, or on
+        anything else. Also unconfirmed: whether the two wayland libraries
+        added alongside the three the original investigation named are the
+        right ones, or too many, or too few. Do not point a real install at
+        this update path until someone has watched it happen. See
+        DECISIONS.md.
+      - [ ] **Windows and macOS auto-install are likewise unwatched.** Same
+        gap as the plain installers below: CI proves the signed bundle was
+        produced, not that installing over a running app leaves a working
+        window.
 - [ ] **Retention policy for health data.** Pick the statutory period, then add
       a purge for archived members' documents past it.
 - [ ] **Code signing for Windows/macOS.** The release matrix now builds an

@@ -518,3 +518,69 @@ requirement from a distribution channel, or a rendering bug on Windows/macOS
 that a build-only check cannot catch. Until then this matches what was asked
 for: multiplatform builds, not a multiplatform verification story this repo
 hasn't earned yet.
+
+## 22. The app checks GitHub Releases for updates — 2026-09-22
+
+TODO.md had flagged this since decision 18's release matrix landed: "decide
+rather than drift." The decision is to add `tauri-plugin-updater` and
+`tauri-plugin-process`, a `Settings → Updates` panel, and an ed25519 signing
+keypair (private key + password as repo secrets, public key in
+`tauri.conf.json`'s `plugins.updater.pubkey`), pointed at
+`releases/latest/download/latest.json` on this repo.
+
+**This is a real, if small, break from "no network access."** The bundle
+description said that outright; it now says what the one exception is. The
+network call happens in the Rust plugin, not the webview — the CSP's
+`connect-src` was never involved and needed no change — but the honest
+description of what the app does changed regardless.
+
+**The release stays a draft until a human promotes it**, same as decision 21
+insisted on for the bundles themselves. `/releases/latest` — which is what
+the updater's endpoint resolves against — is never served for a draft or
+prerelease, so `latest.json` sitting in the draft is inert by construction
+until someone runs `gh release edit <tag> --draft=false`, after installing
+each bundle by hand. Making the updater work was not a reason to remove that
+gate.
+
+**`latest.json` is built from the release's own asset URLs, not guessed.**
+`productName` is "Gym Manager", with a space, and GitHub renames an uploaded
+asset whose filename has one — the exact rule is undocumented and not worth
+depending on. `release.yml` now uploads the bundles first, reads the real
+`browser_download_url` back from `action-gh-release`'s `assets` output, and
+only then writes `latest.json` from those — a second `action-gh-release` call
+against the same tag adds the file to the same draft. Guessing the URL and
+being wrong would have shipped a manifest that 404s silently for every
+installed copy checking it.
+
+### Reviving the AppImage decision 18 dropped — unverified
+
+Tauri's updater does not know how to hand a new version to `apt`; on Linux it
+replaces an AppImage in place, which is the one format decision 18 removed
+after it bundled the build host's `libepoxy`/wayland libraries and produced
+`EGL_BAD_PARAMETER` on a machine whose mesa differed. Decision 18's own
+revisit note was explicit about what reviving it would take: "excluding the
+graphics libraries from the bundle, not re-enabling the target as it stands."
+
+`release.yml`'s Linux job now does exactly that: builds the AppImage
+unsigned, runs `--appimage-extract`, deletes `libepoxy*`,
+`libwayland-client*` and `libwayland-egl*` — the three libraries decision 18
+named after deleting them from an extracted AppDir and confirming the error
+disappeared — plus `libwayland-server*` and `libwayland-cursor*`, the rest of
+the same family, added on the pattern rather than on a second reproduction.
+It then repacks with `appimagetool` and signs the result with
+`cargo tauri signer sign`, since signing has to happen after the bytes it
+signs stop changing.
+
+**Nobody has run the repacked AppImage.** Not on the Linux Mint machine the
+`.deb` targets, not on anything else. The two added libraries are a guess by
+family resemblance, not a reproduction — decision 18 only ever confirmed
+three. This is written down as a real gap, not a rounding error: shipping an
+update mechanism nobody has watched succeed is the exact failure mode
+decision 17 exists to name. Until someone installs the AppImage on real
+hardware and watches the window paint, treat the Linux updater path as
+unproven and keep installing the `.deb` by hand. See TODO.md.
+
+**Revisit if:** someone runs the Linux updater path on real hardware — either
+confirming it (promote it out of TODO.md) or watching it fail (which would
+mean the two guessed libraries were wrong, or too few, or the fix needs a
+library this repo has still never enumerated).
