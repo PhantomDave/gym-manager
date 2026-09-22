@@ -207,10 +207,10 @@ decision called for, never re-enabling the target as it stood. **This has not
 been run on real hardware.** Do not trust the Linux updater path, or install
 the AppImage over the `.deb` install, until someone has. See TODO.md.
 
-Update signing needs `TAURI_SIGNING_PRIVATE_KEY` and
-`TAURI_SIGNING_PRIVATE_KEY_PASSWORD` as repository secrets — generate a
-keypair once with `cargo tauri signer generate`, put the private key and its
-password in the secrets, and the public key in `plugins.updater.pubkey` in
+Update signing needs a `TAURI_SIGNING_PRIVATE_KEY` repository secret —
+generate a keypair once with `cargo tauri signer generate` (this repo's key
+has no password; add `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` as a secret too if
+a future key does), and put the public key in `plugins.updater.pubkey` in
 `src-tauri/tauri.conf.json`. Losing the private key means every future release
 has to ship a new `pubkey` and nobody's existing install will ever see it.
 

@@ -524,9 +524,11 @@ hasn't earned yet.
 TODO.md had flagged this since decision 18's release matrix landed: "decide
 rather than drift." The decision is to add `tauri-plugin-updater` and
 `tauri-plugin-process`, a `Settings → Updates` panel, and an ed25519 signing
-keypair (private key + password as repo secrets, public key in
-`tauri.conf.json`'s `plugins.updater.pubkey`), pointed at
-`releases/latest/download/latest.json` on this repo.
+keypair (private key as a repo secret, unencrypted — the key has no password,
+because the only thing that password would protect against is someone with
+CI secret access reading a key that already only exists to sign public
+release artifacts; public key in `tauri.conf.json`'s `plugins.updater.pubkey`)
+pointed at `releases/latest/download/latest.json` on this repo.
 
 **This is a real, if small, break from "no network access."** The bundle
 description said that outright; it now says what the one exception is. The

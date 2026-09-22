@@ -50,7 +50,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM2QUI3Rjk5RDc3MEFCNUMKUldSY3EzRFhtWCtyeGo0SWFWSkROWlBRNUo3VytMODVMSXJ4VFpydEVwWmlmRGVnSXcyUFBndkUK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdEQjVGQkFFMDNDQkU5Q0EKUldUSzZjc0RydnUxZldJUkpjcVZHZUdEK0VsWXRyaWQzQ2VzTWtFL05KNFM2dm1LbjJsd0pMWWUK",
       "endpoints": [
         "https://github.com/PhantomDave/gym-manager/releases/latest/download/latest.json"
       ],
