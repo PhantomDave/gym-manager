@@ -373,14 +373,25 @@ jobs:
           # `name` GitHub returns may be renamed from what was uploaded (a
           # space in "Gym Manager"'s filenames becomes something else), but
           # the .sig file on THIS runner's disk still has its original local
-          # name. The download URL has to come from the API; the signature
-          # has to come from the local file the earlier job actually wrote.
+          # name. The renamed filename has to come from the API; the
+          # signature has to come from the local file the earlier job wrote.
+          #
+          # The download URL is built from the tag, not taken from the API's
+          # `browser_download_url`: this job runs against a draft release, and
+          # a draft's asset URLs live under a temporary `untagged-<hash>`
+          # path that 404s as soon as the release is published — which is
+          # exactly when the updater starts using this manifest. The
+          # `releases/download/<tag>/<name>` form is what GitHub redirects to
+          # a working download once the release is live, so it is the only
+          # form that is still correct after promotion.
           assets = json.loads(os.environ["RELEASE_ASSETS"])
+          tag = os.environ["GITHUB_REF_NAME"]
+          repo = os.environ["GITHUB_REPOSITORY"]
 
           def find_url(suffix):
               for a in assets:
                   if a["name"].endswith(suffix):
-                      return a["browser_download_url"]
+                      return f"https://github.com/{repo}/releases/download/{tag}/{a['name']}"
               return None
 
           def find_local_signature(suffix):
@@ -403,8 +414,6 @@ jobs:
               if url and signature:
                   platforms[target] = {"signature": signature, "url": url}
 
-          tag = os.environ["GITHUB_REF_NAME"]
-          repo = os.environ["GITHUB_REPOSITORY"]
           manifest = {
               "version": tag.removeprefix("v"),
               "notes": f"See https://github.com/{repo}/releases/tag/{tag}",
