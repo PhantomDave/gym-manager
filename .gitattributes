@@ -1,0 +1,6 @@
+# Windows' git defaults to converting LF to CRLF on checkout. That silently
+# broke `cargo test` there: bindings_test.rs compares src/bindings.ts, read
+# raw from disk, against a string ts-rs builds with hardcoded \n — a real
+# file identical to what's committed still fails with CRLF line endings.
+# Force LF everywhere so a checkout is byte-identical on every OS.
+* text=auto eol=lf
