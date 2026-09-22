@@ -38,7 +38,22 @@ pub fn document_add(state: State<AppState>, input: DocumentInput) -> Result<Docu
     let conn = state.db();
     super::members::load_member(&conn, input.member_id)?;
 
-    let stored = storage::import(&state.data_dir, std::path::Path::new(&input.source_path))?;
+    // The file is optional: a document can be registered ahead of the scan
+    // reaching the desk, and attached later.
+    let stored = match blank_to_none(input.source_path) {
+        Some(p) => Some(storage::import(&state.data_dir, std::path::Path::new(&p))?),
+        None => None,
+    };
+    let (sha256, rel_path, mime, bytes, original_name) = match stored {
+        Some(s) => (
+            Some(s.sha256),
+            Some(s.rel_path),
+            Some(s.mime),
+            Some(s.bytes as i64),
+            Some(s.original_name),
+        ),
+        None => (None, None, None, None, None),
+    };
 
     conn.execute(
         "INSERT INTO document (member_id, kind, title, sha256, rel_path, mime, bytes,
@@ -48,11 +63,11 @@ pub fn document_add(state: State<AppState>, input: DocumentInput) -> Result<Docu
             input.member_id,
             input.kind,
             blank_to_none(input.title),
-            stored.sha256,
-            stored.rel_path,
-            stored.mime,
-            stored.bytes as i64,
-            stored.original_name,
+            sha256,
+            rel_path,
+            mime,
+            bytes,
+            original_name,
             blank_to_none(input.issuer),
             issued_on,
             expires_on,
@@ -77,7 +92,7 @@ pub fn document_add(state: State<AppState>, input: DocumentInput) -> Result<Docu
 /// not our process's memory.
 #[tauri::command]
 pub fn document_open(app: tauri::AppHandle, state: State<AppState>, id: i64) -> Result<()> {
-    let rel_path: String = {
+    let rel_path: Option<String> = {
         let conn = state.db();
         conn.query_row(
             "SELECT rel_path FROM document WHERE id = ?1 AND deleted_at IS NULL",
@@ -91,6 +106,8 @@ pub fn document_open(app: tauri::AppHandle, state: State<AppState>, id: i64) -> 
             other => other.into(),
         })?
     };
+    let rel_path = rel_path
+        .ok_or_else(|| AppError::new("document.no_file", "this document has no file attached"))?;
 
     let path = storage::resolve(&state.data_dir, &rel_path)?;
     app.opener()

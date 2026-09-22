@@ -107,16 +107,17 @@ const it = {
   "doc.receipt": "Ricevuta",
   "doc.other": "Altro",
   "doc.choose_file": "Scegli il file da allegare",
-  "doc.nothing_selected": "Nessun file scelto.",
-  "doc.added": "Documento allegato.",
+  "doc.nothing_selected": "Nessun file scelto (facoltativo, si può allegare anche più tardi).",
+  "doc.no_file": "nessun file allegato",
+  "doc.added": "Documento registrato.",
   "doc.removed": "Documento rimosso.",
   "doc.remove": "Rimuovi",
   "doc.open": "Apri",
-  "doc.added_on": "allegato il {date}",
+  "doc.added_on": "registrato il {date}",
   "doc.expires_on_short": "scade il {date}",
   "doc.title_cert": "Aggiorna il certificato medico",
-  "doc.title_other": "Allega un documento",
-  "doc.register": "Allega",
+  "doc.title_other": "Registra un documento",
+  "doc.register": "Registra",
 
   // Payment ----------------------------------------------------------------
   "pay.cash": "Contanti",
@@ -163,6 +164,8 @@ const it = {
   // Inside parentheses after the label, so it need not agree in gender with
   // the noun: "Cognome (da compilare)", "Data di scadenza (da compilare)".
   "form.required": "da compilare",
+  // Shown under a field left empty after trying to submit.
+  "form.field_required": "Questo campo è obbligatorio.",
 
   "archive.title": "Togliere {name} dagli iscritti?",
   "archive.hint":
@@ -259,6 +262,7 @@ const it = {
   "err.document.unknown_kind": "Tipo di documento non riconosciuto.",
   "err.document.cert_needs_expiry": "Il certificato medico ha bisogno della data di scadenza.",
   "err.document.expiry_before_issue": "La scadenza è precedente alla data di rilascio.",
+  "err.document.no_file": "Questo documento non ha un file allegato.",
   "err.document.open_failed":
     "Non riesco ad aprire il documento. Manca un programma per questo tipo di file?",
   "err.storage.file_not_found": "Il file scelto non esiste più.",

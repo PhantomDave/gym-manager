@@ -15,6 +15,7 @@ use crate::error::Result;
 const MIGRATIONS: &[&str] = &[
     include_str!("migrations/0001_init.sql"),
     include_str!("migrations/0002_language.sql"),
+    include_str!("migrations/0003_optional_document_file.sql"),
 ];
 
 /// Open (creating if needed) the database and bring it up to date.

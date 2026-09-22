@@ -520,6 +520,10 @@ select {
 }
 .req { font-weight: 400; }
 .hint { font-size: 14px; line-height: 20px; color: var(--surface-ink-muted); margin-top: var(--space-2); }
+.field-error { font-size: 14px; line-height: 20px; color: var(--state-blocked); margin-top: var(--space-2); }
+.field.invalid input,
+.field.invalid select,
+.field.invalid textarea { border-color: var(--state-blocked); }
 
 /* Three selects, never <input type="date">: WebKitGTK can degrade that to a
    bare text box wanting YYYY-MM-DD. */

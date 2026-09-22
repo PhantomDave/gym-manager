@@ -21,6 +21,8 @@ export interface DateFieldProps {
   from?: number;
   to?: number;
   hint?: string;
+  /** Set after a failed submit; shown in place of `hint` and marks the field. */
+  error?: string;
 }
 
 /** Days in a month, so 31 February can never be selected. */
@@ -36,6 +38,7 @@ export function DateField({
   from,
   to,
   hint,
+  error,
 }: DateFieldProps) {
   const thisYear = new Date().getFullYear();
   const firstYear = from ?? thisYear - 5;
@@ -86,12 +89,17 @@ export function DateField({
   // truncate to "Gio"/"Anr", and the date is the field most likely to be
   // misread in the first place.
   return (
-    <div class="field full">
+    <div class={`field full ${error ? "invalid" : ""}`}>
       <label id={`${id}-label`}>
         {label}
         {required && <span class="req"> ({t("form.required")})</span>}
       </label>
-      <div class="date-field" role="group" aria-labelledby={`${id}-label`}>
+      <div
+        class="date-field"
+        role="group"
+        aria-labelledby={`${id}-label`}
+        aria-invalid={error ? "true" : undefined}
+      >
         <select id={id} aria-label={t("date.day")} value={d || ""} onChange={(e) => emit(y, m, num(e))}>
           <option value="">{t("date.day")}</option>
           {Array.from({ length: maxDay }, (_, i) => i + 1).map((n) => (
@@ -117,7 +125,7 @@ export function DateField({
           ))}
         </select>
       </div>
-      {hint && <div class="hint">{hint}</div>}
+      {error ? <div class="field-error">{error}</div> : hint && <div class="hint">{hint}</div>}
     </div>
   );
 }

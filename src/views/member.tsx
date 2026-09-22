@@ -282,7 +282,9 @@ function DocumentList({
                 {d.expiresOn
                   ? t("doc.expires_on_short", { date: fmtDate(d.expiresOn) })
                   : t("doc.added_on", { date: fmtDate(d.addedAt.slice(0, 10)) })}
-                {d.issuer && ` · ${d.issuer}`} · {fmtBytes(d.bytes)}
+                {d.issuer && ` · ${d.issuer}`}
+                {" · "}
+                {d.relPath ? fmtBytes(d.bytes) : t("doc.no_file")}
               </div>
             </div>
             {left !== null && (
@@ -290,9 +292,11 @@ function DocumentList({
                 {left < 0 ? t("status.cert_expired") : t("status.days_left", { count: left })}
               </span>
             )}
-            <button class="btn btn-sm" onClick={() => void api.documentOpen(d.id)}>
-              {t("doc.open")}
-            </button>
+            {d.relPath && (
+              <button class="btn btn-sm" onClick={() => void api.documentOpen(d.id)}>
+                {t("doc.open")}
+              </button>
+            )}
             <button
               class="btn btn-ghost btn-sm btn-danger"
               aria-label={t("doc.remove")}
