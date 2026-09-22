@@ -46,6 +46,16 @@ own Chromium and Node and idles around 400 MB before the app does anything.
 **Revisit if:** the app ever needs to target Windows and macOS seriously and
 WebKitGTK divergence becomes a bigger tax than Electron's memory. Unlikely.
 
+**Update, 2026-09-22:** the release workflow now builds Windows and macOS
+bundles too (decision 21). That is not the Electron trade-off above — Tauri
+still uses each platform's own WebView2/WKWebView rather than bundling
+Chromium — but it does mean the WebKitGTK-specific code in this app (decision
+11's three-select date field, decision 20's `appearance: none` on `select`)
+now runs on engines it was never measured against. Nothing in it is expected
+to behave worse elsewhere — both workarounds route around platform quirks
+rather than relying on one — but nobody has looked at a rendered screen on
+either platform. See decision 21.
+
 ## 2. TypeScript, bundled by bun — REVERSED 2026-09-19
 
 **This decision originally read "no build step, no `node_modules`".** It was
@@ -451,3 +461,60 @@ own measured contrast, not the assumption that our colours applied.
 A release build with `lto = true` and `codegen-units = 1` will thrash swap on
 modest hardware for a very long time. Build the `.deb` elsewhere and install
 it there.
+
+## 21. The release matrix builds Windows and macOS, unsigned and unverified — 2026-09-22
+
+Decision 1 called this "Unlikely"; TODO.md carried it as the accepted-but-not-
+started next step. This is that step, done to the letter of what it costs
+rather than what it looks like on paper.
+
+**What changed:**
+
+- `tauri.conf.json`'s `bundle.targets` went from `["deb"]` to `"all"`, and
+  `icons/icon.icns` was generated (`cargo tauri icon`) — the macOS bundler
+  refuses to build without it, and it was the one file this repo's icon set
+  never had a use for until now.
+- `release.yml` gained a `windows` job (`--bundles nsis`) and a `macos` job
+  (`--bundles dmg`), each building on that OS's own GitHub-hosted runner —
+  there is no cross-compiling a webview app from Linux. A `publish` job
+  downloads all three bundles and opens one draft release with all of them
+  attached.
+- `ci.yml`'s `rust` job became a three-OS matrix, so `cargo test`/`clippy`
+  run on Windows and macOS on every PR, not just at release time.
+
+**What this deliberately does not do**, and both are tracked in TODO.md
+rather than silently assumed:
+
+- **No code signing.** Windows installers show SmartScreen's "unrecognized
+  publisher" warning; macOS disk images are blocked by Gatekeeper until the
+  user right-clicks → Open once. Signing needs a purchased certificate (or
+  Azure Trusted Signing) and an Apple Developer ID with notarization
+  credentials — neither exists yet, and adding secrets to make CI *look*
+  finished without them actually being configured would be worse than
+  saying so in the release notes.
+- **No smoke test for the two new engines.** `scripts/smoke.py` boots
+  WebKitGTK because that is the engine decision 17 was written to stop
+  lying about. There is no equivalent harness for WebView2 or WKWebView, so
+  the Windows and macOS release jobs verify only that `cargo tauri build`
+  produced a file — the same category of check that let the AppImage's
+  black window through in decision 18, just named honestly this time
+  instead of mistaken for more than it is.
+
+**The glibc pin was dropped along the way.** `ci.yml` and the old Linux-only
+`release.yml` job ran on `ubuntu-22.04` specifically for its glibc 2.35 — the
+oldest version this app built against, so the `.deb` would run on anything at
+least that recent (see the removed comment in `ci.yml`). Both files now use
+`ubuntu-latest` everywhere, matching `windows-latest`/`macos-latest` for a
+consistent matrix. **The trade-off:** the `.deb` now links against whatever
+glibc the current `ubuntu-latest` image ships, which moves forward over time
+and could eventually be newer than what an older deployment target has
+installed. Nothing has hit this yet. If a `.deb` from a future release
+refuses to start with a `GLIBC_2.NN not found` error, that is this trade-off
+arriving — the fix is to pin the Linux job back to a specific `ubuntu-XX.04`
+runner, not to chase the error in the app's own code.
+
+**Revisit if:** either gap above causes a real failure — a signing
+requirement from a distribution channel, or a rendering bug on Windows/macOS
+that a build-only check cannot catch. Until then this matches what was asked
+for: multiplatform builds, not a multiplatform verification story this repo
+hasn't earned yet.

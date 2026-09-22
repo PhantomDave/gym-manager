@@ -20,7 +20,12 @@ env:
 jobs:
   frontend:
     name: types, bundle and smoke test
-    runs-on: ubuntu-22.04
+    # Linux only, deliberately: this is the one job that boots the real
+    # rendering engine (WebKitGTK) instead of trusting that a build succeeded.
+    # There is no WebView2/WKWebView equivalent of scripts/smoke.py, so
+    # Windows and macOS builds below are verified by "the bundle was
+    # produced", not by anything drawing on screen. See DECISIONS.md.
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
@@ -56,17 +61,28 @@ jobs:
         run: xvfb-run -a python3 scripts/smoke.py
 
   rust:
-    name: fmt, clippy, test
-    # 22.04 deliberately: it ships glibc 2.35, the oldest glibc we build
-    # against, so anything that builds here runs on any target at least
-    # that recent. Building on a newer runner would link against a glibc
-    # older targets don't have.
-    runs-on: ubuntu-22.04
+    name: fmt, clippy, test (${{ matrix.os }})
+    # No glibc pin anymore: ubuntu-latest/windows-latest/macos-latest, for
+    # consistency across the matrix. This deliberately gives up the old
+    # guarantee that the Linux build links against the oldest glibc we
+    # support — see DECISIONS.md for what that trade-off was and what to do
+    # if it ever bites.
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    defaults:
+      run:
+        # Several steps below (seed script, $GITHUB_OUTPUT) are written in
+        # bash syntax; Windows runners default to PowerShell otherwise.
+        shell: bash
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Install Tauri system dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -127,7 +143,7 @@ jobs:
 
   versions:
     name: version consistency
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       # 'Office' looked obviously right and is rejected by the bundler, which

@@ -19,10 +19,7 @@ env:
 jobs:
   linux:
     name: Build the .deb
-    # Same reasoning as CI: build against glibc 2.35 (ubuntu-22.04) so the
-    # .deb also runs on anything shipping that version or newer.
-    runs-on: ubuntu-22.04
-
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
 
@@ -95,11 +92,147 @@ jobs:
           path: release-artifacts/*
           retention-days: 14
 
-      # Published as a draft on purpose: someone should install the .deb on
-      # a real machine and open it once before this reaches a deployment.
-      - name: Publish draft release
+  windows:
+    name: Build the Windows installer
+    runs-on: windows-latest
+    # Several steps below are written in bash syntax ($GITHUB_OUTPUT, find);
+    # windows-latest defaults to PowerShell otherwise.
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Tag must match the manifest version
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v3
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          manifest=$(grep -m1 '^version = ' src-tauri/Cargo.toml | cut -d'"' -f2)
+          if [ "$tag" != "$manifest" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $manifest"
+            exit 1
+          fi
+
+      - uses: cargo-bins/cargo-binstall@v1.23.0
+
+      - name: Install the Tauri CLI
+        run: cargo binstall -y --locked tauri-cli@^2
+
+      # NSIS, not MSI: it's the target the Tauri docs lead with and needs no
+      # extra system dependency — the bundler fetches makensis itself.
+      - name: Build bundles
+        working-directory: src-tauri
+        run: cargo tauri build --bundles nsis
+
+      - name: Collect bundles
+        id: collect
+        run: |
+          mkdir -p release-artifacts
+          find src-tauri/target/release/bundle -type f -name '*.exe' \
+            -exec cp {} release-artifacts/ \;
+          ls -lh release-artifacts
+          echo "count=$(find release-artifacts -name '*.exe' | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if nothing was produced
+        run: test "${{ steps.collect.outputs.count }}" -gt 0
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: gym-manager-windows
+          path: release-artifacts/*
+          retention-days: 14
+
+  macos:
+    name: Build the macOS app
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install frontend dependencies
+        run: bun install --frozen-lockfile
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Tag must match the manifest version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          manifest=$(grep -m1 '^version = ' src-tauri/Cargo.toml | cut -d'"' -f2)
+          if [ "$tag" != "$manifest" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match Cargo.toml version $manifest"
+            exit 1
+          fi
+
+      - uses: cargo-bins/cargo-binstall@v1.23.0
+
+      - name: Install the Tauri CLI
+        run: cargo binstall -y --locked tauri-cli@^2
+
+      # dmg, not app: a .app alone has no install step for the user to run.
+      # Unsigned — there is no Apple Developer ID configured — so Gatekeeper
+      # will refuse to open it until the user right-clicks > Open once.
+      - name: Build bundles
+        working-directory: src-tauri
+        run: cargo tauri build --bundles dmg
+
+      - name: Collect bundles
+        id: collect
+        run: |
+          mkdir -p release-artifacts
+          find src-tauri/target/release/bundle -type f -name '*.dmg' \
+            -exec cp {} release-artifacts/ \;
+          ls -lh release-artifacts
+          echo "count=$(find release-artifacts -name '*.dmg' | wc -l)" >> "$GITHUB_OUTPUT"
+
+      - name: Fail if nothing was produced
+        run: test "${{ steps.collect.outputs.count }}" -gt 0
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: gym-manager-macos
+          path: release-artifacts/*
+          retention-days: 14
+
+  # Published as a draft on purpose: someone should install each bundle on a
+  # real machine of that OS and open it once before this reaches a deployment.
+  # Neither the Windows nor the macOS bundle gets that check here — CI only
+  # proves they were produced, not that they render. See DECISIONS.md.
+  publish:
+    name: Publish draft release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [linux, windows, macos]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: release-artifacts
+          pattern: gym-manager-*
+          merge-multiple: true
+
+      - run: ls -lhR release-artifacts
+
+      - uses: softprops/action-gh-release@v3
         with:
           draft: true
           generate_release_notes: true
@@ -118,3 +251,19 @@ jobs:
             with `EGL_BAD_PARAMETER` on systems whose mesa differs. The .deb
             links against the system WebKitGTK, which is the configuration that
             works. See DECISIONS.md.
+
+            ---
+
+            **Windows** (`.exe`, NSIS installer) and **macOS** (`.dmg`) builds
+            are new and are **not signed** and **not verified on screen** —
+            CI only confirms that the bundle was produced, the same way the
+            Linux build is confirmed by `scripts/smoke.py` inside WebKitGTK,
+            but neither Windows nor macOS has an equivalent smoke test yet.
+
+            - **Windows**: SmartScreen will warn that the app is from an
+              unrecognized publisher ("More info" → "Run anyway").
+            - **macOS**: Gatekeeper will refuse to open it the first time.
+              Right-click the app → Open, once, to bypass it.
+
+            Install one of these on a real machine before trusting it for
+            anything more than a look.
