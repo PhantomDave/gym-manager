@@ -138,8 +138,9 @@ pub struct Document {
     pub member_id: Option<i64>,
     pub kind: DocumentKind,
     pub title: Option<String>,
-    pub sha256: String,
-    pub rel_path: String,
+    /// `None` when the document was registered with no file attached.
+    pub sha256: Option<String>,
+    pub rel_path: Option<String>,
     pub mime: Option<String>,
     pub bytes: Option<i64>,
     pub original_name: Option<String>,
@@ -155,8 +156,9 @@ pub struct Document {
 pub struct DocumentInput {
     pub member_id: i64,
     pub kind: DocumentKind,
-    /// Absolute path on disk of the file being imported; it is copied, not moved.
-    pub source_path: String,
+    /// Absolute path on disk of the file being imported; it is copied, not
+    /// moved. `None` (or blank) registers the document with no file attached.
+    pub source_path: Option<String>,
     pub title: Option<String>,
     pub issuer: Option<String>,
     pub issued_on: Option<String>,

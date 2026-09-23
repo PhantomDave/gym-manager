@@ -64,14 +64,27 @@ export function MemberFormDialog({
 }) {
   const editing = member !== undefined;
   const [form, setForm] = useState<MemberFormValues>(editing ? toInput(member) : EMPTY_MEMBER);
+  const [errors, setErrors] = useState<{ firstName?: string; lastName?: string }>({});
   const [busy, setBusy] = useState(false);
 
   const set =
     <K extends keyof MemberFormValues>(key: K) =>
-    (value: string) =>
+    (value: string) => {
       setForm((f) => ({ ...f, [key]: value }));
+      if (key === "firstName" || key === "lastName") {
+        setErrors((e) => ({ ...e, [key]: undefined }));
+      }
+    };
 
   const confirm = async () => {
+    const nextErrors: typeof errors = {};
+    if (!form.firstName.trim()) nextErrors.firstName = t("form.field_required");
+    if (!form.lastName.trim()) nextErrors.lastName = t("form.field_required");
+    if (nextErrors.firstName || nextErrors.lastName) {
+      setErrors(nextErrors);
+      return;
+    }
+
     setBusy(true);
     try {
       if (editing) {
@@ -101,9 +114,9 @@ export function MemberFormDialog({
     >
       <div class="form-grid">
         <Field id="f-first" label={t("field.first_name")} required autoFocus
-          value={form.firstName} onInput={set("firstName")} />
+          value={form.firstName} onInput={set("firstName")} error={errors.firstName} />
         <Field id="f-last" label={t("field.last_name")} required
-          value={form.lastName} onInput={set("lastName")} />
+          value={form.lastName} onInput={set("lastName")} error={errors.lastName} />
         <Field id="f-nid" label={t("field.national_id")}
           value={form.nationalId} onInput={set("nationalId")} />
         <DateField id="f-birth" label={t("field.birth_date")} value={form.birthDate}
@@ -227,6 +240,7 @@ export function DocumentDialog({
   const [issuer, setIssuer] = useState("");
   const [issuedOn, setIssuedOn] = useState("");
   const [expiresOn, setExpiresOn] = useState("");
+  const [expiresError, setExpiresError] = useState<string | undefined>(undefined);
   const [busy, setBusy] = useState(false);
 
   const chooseIssued = (value: string) => {
@@ -238,8 +252,19 @@ export function DocumentDialog({
     }
   };
 
+  const chooseExpires = (value: string) => {
+    setExpiresOn(value);
+    setExpiresError(undefined);
+  };
+
+  // The file itself is optional — a document can be registered before its
+  // scan reaches the desk and attached later — but a certificate is useless
+  // without the date that drives every expiry warning in the app.
   const confirm = async () => {
-    if (!path) return;
+    if (isCert && !expiresOn) {
+      setExpiresError(t("form.field_required"));
+      return;
+    }
     setBusy(true);
     try {
       await api.documentAdd({
@@ -292,7 +317,8 @@ export function DocumentDialog({
         <DateField id="d-issued" label={t("field.issued_on")} value={issuedOn}
           onInput={chooseIssued} from={thisYear - 10} to={thisYear} />
         <DateField id="d-expires" label={t("field.expires_on")} value={expiresOn}
-          onInput={setExpiresOn} required={isCert} from={thisYear - 1} to={thisYear + 15} />
+          onInput={chooseExpires} required={isCert} error={expiresError}
+          from={thisYear - 1} to={thisYear + 15} />
         {isCert && (
           <Field id="d-issuer" label={t("field.issuer")} full value={issuer} onInput={setIssuer} />
         )}
@@ -320,13 +346,18 @@ export function ReasonDialog({
   onConfirm: (reason: string) => Promise<void>;
 }) {
   const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | undefined>(undefined);
   const [busy, setBusy] = useState(false);
 
   const confirm = async () => {
-    if (!reason.trim()) return;
+    const trimmed = reason.trim();
+    if (!trimmed) {
+      setError(t("form.field_required"));
+      return;
+    }
     setBusy(true);
     try {
-      await onConfirm(reason.trim());
+      await onConfirm(trimmed);
     } catch {
       setBusy(false);
     }
@@ -335,8 +366,9 @@ export function ReasonDialog({
   return (
     <Dialog title={title} hint={hint} confirmText={confirmText} onConfirm={confirm}
       onCancel={onClose} busy={busy}>
-      <Field id="reason" label={label} full value={reason} onInput={setReason}
-        placeholder={placeholder} autoFocus />
+      <Field id="reason" label={label} full value={reason}
+        onInput={(v) => { setReason(v); setError(undefined); }}
+        placeholder={placeholder} error={error} autoFocus />
     </Dialog>
   );
 }

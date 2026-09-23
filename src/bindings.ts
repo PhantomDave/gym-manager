@@ -22,13 +22,18 @@ export type Membership = { id: number, memberId: number, startsOn: string, endsO
 
 export type DocumentKind = "health_cert" | "id_card" | "waiver" | "contract" | "photo" | "receipt" | "other";
 
-export type Document = { id: number, memberId: number | null, kind: DocumentKind, title: string | null, sha256: string, relPath: string, mime: string | null, bytes: number | null, originalName: string | null, issuer: string | null, issuedOn: string | null, expiresOn: string | null, addedAt: string, };
+export type Document = { id: number, memberId: number | null, kind: DocumentKind, title: string | null, 
+/**
+ * `None` when the document was registered with no file attached.
+ */
+sha256: string | null, relPath: string | null, mime: string | null, bytes: number | null, originalName: string | null, issuer: string | null, issuedOn: string | null, expiresOn: string | null, addedAt: string, };
 
 export type DocumentInput = { memberId: number, kind: DocumentKind, 
 /**
- * Absolute path on disk of the file being imported; it is copied, not moved.
+ * Absolute path on disk of the file being imported; it is copied, not
+ * moved. `None` (or blank) registers the document with no file attached.
  */
-sourcePath: string, title: string | null, issuer: string | null, issuedOn: string | null, expiresOn: string | null, };
+sourcePath: string | null, title: string | null, issuer: string | null, issuedOn: string | null, expiresOn: string | null, };
 
 export type MemberDetail = { member: Member, memberships: Array<Membership>, documents: Array<Document>, paidThrough: string | null, certThrough: string | null, };
 

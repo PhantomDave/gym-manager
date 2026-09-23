@@ -39,6 +39,8 @@ export interface FieldProps {
   required?: boolean;
   placeholder?: string;
   hint?: string;
+  /** Set after a failed submit; shown in place of `hint` and marks the field. */
+  error?: string;
   full?: boolean;
   inputMode?: "text" | "numeric" | "decimal" | "tel" | "email";
   autoFocus?: boolean;
@@ -57,11 +59,12 @@ export const Field = ({
   required = false,
   placeholder,
   hint,
+  error,
   full = false,
   inputMode,
   autoFocus = false,
 }: FieldProps) => (
-  <div class={`field ${full ? "full" : ""}`}>
+  <div class={`field ${full ? "full" : ""} ${error ? "invalid" : ""}`}>
     <label for={id}>
       {label}
       {required && <span class="req"> ({t("form.required")})</span>}
@@ -73,9 +76,17 @@ export const Field = ({
       value={value}
       placeholder={placeholder}
       autofocus={autoFocus}
+      aria-invalid={error ? "true" : undefined}
+      aria-describedby={error ? `${id}-error` : undefined}
       onInput={(e) => onInput((e.target as HTMLInputElement).value)}
     />
-    {hint && <div class="hint">{hint}</div>}
+    {error ? (
+      <div id={`${id}-error`} class="field-error">
+        {error}
+      </div>
+    ) : (
+      hint && <div class="hint">{hint}</div>
+    )}
   </div>
 );
 
