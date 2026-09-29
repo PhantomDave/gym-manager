@@ -141,6 +141,12 @@ export function MemberDrawer({
             <dd>
               {[member.emergencyContact, member.emergencyPhone].filter(Boolean).join(" · ") || "—"}
             </dd>
+            <dt>{t("field.card_number")}</dt>
+            <dd>{member.cardNumber ?? "—"}</dd>
+            <dt>{t("field.card_expires_on")}</dt>
+            <dd>{fmtDate(member.cardExpiresOn)}</dd>
+            <dt>{t("field.teachers")}</dt>
+            <dd>{member.teachers ?? "—"}</dd>
             <dt>{t("field.joined_on")}</dt>
             <dd>{fmtDate(member.joinedOn)}</dd>
             {member.notes && (
