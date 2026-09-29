@@ -134,6 +134,7 @@ const it = {
   "pay.from": "Dal",
   "pay.to": "Al",
   "pay.end_hint": "Di solito un mese ({date}), ma puoi scegliere un'altra data.",
+  "pay.take_renewal": "Registra il rinnovo",
   "pay.take": "Registra il pagamento",
   "pay.done": "Rinnovo registrato.",
   "pay.owes": "deve ancora {amount}",
