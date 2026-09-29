@@ -311,3 +311,29 @@ pub(crate) fn map_document(r: &rusqlite::Row) -> rusqlite::Result<Document> {
         added_at: r.get(12)?,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The new columns sit between `notes` and `joined_on` in the SELECT, so a
+    /// shifted index would put the expiry in the card number without any error.
+    #[test]
+    fn load_member_maps_teachers_and_card() {
+        let conn = crate::db::open_in_memory().unwrap();
+        conn.execute(
+            "INSERT INTO member (id, first_name, last_name, notes, teachers, card_number,
+                                 card_expires_on, joined_on)
+             VALUES (1, 'Ada', 'Lovelace', 'n', 'Rossi, Bianchi', 'T-042', '2026-12-31',
+                     '2026-01-15')",
+            [],
+        )
+        .unwrap();
+        let m = load_member(&conn, 1).unwrap();
+        assert_eq!(m.notes.as_deref(), Some("n"));
+        assert_eq!(m.teachers.as_deref(), Some("Rossi, Bianchi"));
+        assert_eq!(m.card_number.as_deref(), Some("T-042"));
+        assert_eq!(m.card_expires_on.as_deref(), Some("2026-12-31"));
+        assert_eq!(m.joined_on, "2026-01-15");
+    }
+}

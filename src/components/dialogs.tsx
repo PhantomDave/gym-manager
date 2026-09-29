@@ -11,7 +11,7 @@ import { api, pickDocument } from "../api.js";
 import { Dialog } from "./Dialog.js";
 import { DateField } from "./DateField.js";
 import { Field, Select } from "./ui.js";
-import { centsToEuros, eurosToCents, fmtDate } from "../lib/format.js";
+import { centsToEuros, eurosToCents, fmtDate, today } from "../lib/format.js";
 import type {
   DocumentKind,
   Member,
@@ -26,8 +26,10 @@ import type {
 type MemberFormValues = { [K in keyof MemberInput]: string };
 
 /** The association card normally lapses on 31 December of the year it was
- * issued. Only a proposal: the operator can pick any other date. */
-const defaultCardExpiry = (): string => `${new Date().getFullYear()}-12-31`;
+ * issued. Only a proposal: the operator can pick any other date. It is offered
+ * on a new member and whenever a card number is first entered, never written
+ * over a stored NULL on edit — that would save a date nobody chose. */
+const defaultCardExpiry = (): string => `${today().slice(0, 4)}-12-31`;
 
 const emptyMember = (): MemberFormValues => ({
   firstName: "",
@@ -58,7 +60,7 @@ function toInput(member: Member): MemberFormValues {
     notes: member.notes ?? "",
     teachers: member.teachers ?? "",
     cardNumber: member.cardNumber ?? "",
-    cardExpiresOn: member.cardExpiresOn ?? defaultCardExpiry(),
+    cardExpiresOn: member.cardExpiresOn ?? "",
   };
 }
 
@@ -82,7 +84,15 @@ export function MemberFormDialog({
   const set =
     <K extends keyof MemberFormValues>(key: K) =>
     (value: string) => {
-      setForm((f) => ({ ...f, [key]: value }));
+      setForm((f) => {
+        const next = { ...f, [key]: value };
+        // A card number typed into a blank field brings the usual expiry with
+        // it, unless one is already there.
+        if (key === "cardNumber" && !f.cardNumber.trim() && value.trim() && !f.cardExpiresOn) {
+          next.cardExpiresOn = defaultCardExpiry();
+        }
+        return next;
+      });
       if (key === "firstName" || key === "lastName") {
         setErrors((e) => ({ ...e, [key]: undefined }));
       }
@@ -147,7 +157,7 @@ export function MemberFormDialog({
           value={form.cardNumber} onInput={set("cardNumber")} />
         <DateField id="f-card-expiry" label={t("field.card_expires_on")}
           value={form.cardExpiresOn} onInput={set("cardExpiresOn")}
-          from={thisYear - 5} to={thisYear + 5} hint={t("form.card_expiry_hint")} />
+          hint={t("form.card_expiry_hint")} />
         <Field id="f-notes" label={t("field.notes")} full
           value={form.notes} onInput={set("notes")} />
       </div>
