@@ -5,7 +5,15 @@ import { Badges, Empty } from "../components/ui.js";
 import { statusOf } from "../lib/status.js";
 import type { Filter, MemberRow, StatusSettings } from "../types.js";
 
-const FILTERS: Filter[] = ["all", "active", "expiring", "expired", "certExpired", "certMissing"];
+const FILTERS: Filter[] = [
+  "all",
+  "active",
+  "expiring",
+  "expired",
+  "certExpired",
+  "certMissing",
+  "idDocMissing",
+];
 
 export function MembersView({
   settings,

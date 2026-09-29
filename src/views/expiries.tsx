@@ -13,6 +13,13 @@ import type { Expiry, Tone } from "../types.js";
 
 const WINDOWS = [7, 30, 90] as const;
 
+const KIND_LABEL: Record<Expiry["kind"], MessageKey> = {
+  membership: "expiries.memberships",
+  certificate: "expiries.certificates",
+  certificate_missing: "expiries.certificates",
+  id_document_missing: "doc.id_card",
+};
+
 export function ExpiriesView({
   refreshKey,
   onOpenMember,
@@ -23,17 +30,21 @@ export function ExpiriesView({
   const [days, setDays] = useState<number>(30);
   const [rows, setRows] = useState<Expiry[]>([]);
   const [missing, setMissing] = useState<Expiry[]>([]);
+  const [noIdDoc, setNoIdDoc] = useState<Expiry[]>([]);
 
   useEffect(() => {
-    void (async () => {
-      const [list, none] = await Promise.all([
-        api.expiriesList(days, 60),
-        api.certificatesMissing(),
-      ]);
-      setRows(list);
-      setMissing(none);
-    })();
+    void (async () => setRows(await api.expiriesList(days, 60)))();
   }, [days, refreshKey]);
+
+  // The dateless lists do not depend on the window, so switching 7/30/90 days
+  // does not re-read them.
+  useEffect(() => {
+    void (async () => {
+      const [none, noId] = await Promise.all([api.certificatesMissing(), api.idDocumentsMissing()]);
+      setMissing(none);
+      setNoIdDoc(noId);
+    })();
+  }, [refreshKey]);
 
   const overdue = rows.filter((r) => r.daysLeft < 0);
   const upcoming = rows.filter((r) => r.daysLeft >= 0);
@@ -75,6 +86,16 @@ export function ExpiriesView({
         />
       )}
 
+      {noIdDoc.length > 0 && (
+        <Group
+          title={t("status.id_doc_missing")}
+          rows={noIdDoc}
+          tone="warn"
+          dateless
+          onOpenMember={onOpenMember}
+        />
+      )}
+
       <Group title={t("expiries.upcoming")} rows={upcoming} tone="warn" onOpenMember={onOpenMember} />
     </section>
   );
@@ -111,7 +132,7 @@ function Group({
                   {r.lastName}, {r.firstName}
                 </div>
                 <div class="sub">
-                  {r.kind === "membership" ? t("expiries.memberships") : t("expiries.certificates")}
+                  {t(KIND_LABEL[r.kind])}
                   {!dateless && ` · ${fmtDate(r.date)}`}
                 </div>
               </div>

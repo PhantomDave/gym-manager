@@ -209,6 +209,16 @@ reasons, which are `{ code, params }` for the same reason.
 Start and end dates are computed in the backend, never taken from the frontend,
 so a stale form cannot bypass the stacking rule.
 
+**Update, 2026-09-29: the end date can be overridden.** The desk asked to set
+the expiry when registering a renewal. The start is still computed in the
+backend and never accepted from the form, so rules 2 and 3 hold. The end is
+still proposed by `next_period` (rule 1); the renewal dialog shows it in a
+`DateField`, and only when the operator changes it does the form send
+`ends_on`, which `membership_renew` checks is on or after the computed start
+and still runs through the overlap check. An untouched form sends nothing, so
+the backend recomputes the month rather than trusting a date that may have
+gone stale. The next renewal stacks on whatever end was recorded.
+
 **Grace periods are a display concept only.** Baking grace into `ends_on` would
 let it compound on every renewal.
 

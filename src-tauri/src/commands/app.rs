@@ -43,6 +43,7 @@ pub struct Dashboard {
     pub expired: i64,
     pub cert_expired: i64,
     pub cert_missing: i64,
+    pub id_doc_missing: i64,
     pub checkins_today: i64,
 }
 
@@ -84,6 +85,7 @@ pub fn dashboard(state: State<AppState>) -> Result<Dashboard> {
         expired: count("paid_through IS NULL OR paid_through < :today", by_day)?,
         cert_expired: count("cert_through IS NOT NULL AND cert_through < :today", by_day)?,
         cert_missing: count("cert_through IS NULL", &[])?,
+        id_doc_missing: count(super::members::ID_DOC_MISSING, &[])?,
         checkins_today: conn.query_row(
             "SELECT count(*) FROM checkin WHERE date(at) = date('now','localtime')",
             [],

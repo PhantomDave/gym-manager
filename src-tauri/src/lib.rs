@@ -78,6 +78,7 @@ pub fn run() {
             commands::documents::document_open,
             commands::documents::documents_expiring,
             commands::expiries::certificates_missing,
+            commands::expiries::id_documents_missing,
             commands::expiries::expiries_list,
             commands::members::member_archive,
             commands::members::member_create,

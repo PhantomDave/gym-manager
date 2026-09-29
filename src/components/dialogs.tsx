@@ -165,7 +165,9 @@ export function MemberFormDialog({
   );
 }
 
-/** Sell one month. The dates come from the backend and are never editable. */
+/** Sell a period. The start comes from the backend and is never editable (it
+ * carries the stacking rule); the end is the backend's one-month proposal,
+ * which the operator may change. */
 export function RenewDialog({
   memberId,
   preview,
@@ -187,9 +189,19 @@ export function RenewDialog({
     FEATURES.paymentMethod ? "cash" : null,
   );
   const [note, setNote] = useState("");
+  const [endsOn, setEndsOn] = useState(preview.endsOn);
+  // The end can only fall in the start's year or the next: a slip on a wider
+  // year list would record a membership that runs for a decade, and years
+  // before the start would only be refused by the backend.
+  const startYear = parseInt(preview.startsOn.slice(0, 4), 10);
+  const [endError, setEndError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
 
   const confirm = async () => {
+    if (!endsOn) {
+      setEndError(t("form.field_required"));
+      return;
+    }
     setBusy(true);
     try {
       await api.membershipRenew({
@@ -198,6 +210,9 @@ export function RenewDialog({
         paidCents: eurosToCents(paid),
         paymentMethod: method,
         note,
+        // Untouched, the backend recomputes the end itself rather than trusting
+        // a date that could be stale by the time this is sent.
+        endsOn: endsOn === preview.endsOn ? null : endsOn,
       });
       onDone(t("pay.done"));
     } catch {
@@ -219,12 +234,15 @@ export function RenewDialog({
           <span class="k">{t("pay.from")}</span>
           {fmtDate(preview.startsOn)}
         </div>
-        <div>
-          <span class="k">{t("pay.to")}</span>
-          {fmtDate(preview.endsOn)}
-        </div>
       </div>
       <div class="form-grid">
+        <DateField id="p-ends" label={t("pay.to")} required value={endsOn}
+          onInput={(v) => {
+            setEndsOn(v);
+            setEndError(undefined);
+          }}
+          hint={t("pay.end_hint", { date: fmtDate(preview.endsOn) })} error={endError}
+          from={startYear} to={startYear + 1} />
         <Field id="p-price" label={`${t("field.price")} (${currency})`} inputMode="decimal"
           autoFocus value={price} onInput={setPrice} />
         <Field id="p-paid" label={`${t("field.paid")} (${currency})`} inputMode="decimal"

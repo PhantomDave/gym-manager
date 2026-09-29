@@ -52,6 +52,9 @@ pub struct MemberRow {
     /// Expiry of the newest health certificate on file, or None if there is none.
     pub cert_through: Option<String>,
     pub last_checkin: Option<String>,
+    /// Whether an ID document (`DocumentKind::IdCard`) was ever added and not
+    /// deleted. Its expiry is not considered.
+    pub has_id_document: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -182,6 +185,7 @@ pub struct MemberDetail {
     pub documents: Vec<Document>,
     pub paid_through: Option<String>,
     pub cert_through: Option<String>,
+    pub has_id_document: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -207,4 +211,5 @@ pub enum Filter {
     Expired,
     CertExpired,
     CertMissing,
+    IdDocMissing,
 }

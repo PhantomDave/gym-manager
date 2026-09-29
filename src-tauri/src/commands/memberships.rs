@@ -2,7 +2,7 @@ use rusqlite::{params, Connection};
 use serde::Serialize;
 use tauri::State;
 
-use super::{blank_to_none, today};
+use super::{blank_to_none, parse_date, today};
 use crate::dates;
 use crate::error::{AppError, Result};
 use crate::models::{Membership, PaymentMethod};
@@ -41,10 +41,13 @@ pub fn membership_preview(state: State<AppState>, member_id: i64) -> Result<Rene
     })
 }
 
-/// Sell one month of membership.
+/// Sell a period of membership — one month unless the operator says otherwise.
 ///
-/// Start and end dates are computed here, not taken from the frontend, so the
-/// stacking rule cannot be bypassed by a stale form.
+/// The start date is always computed here, never taken from the frontend, so
+/// the stacking rule cannot be bypassed by a stale form. The end date defaults
+/// to one month (`dates::next_period`); `ends_on`, when given, is the operator
+/// choosing a different one, and only has to fall on or after the start. The
+/// form sends it only when the operator changed the proposed date.
 #[tauri::command]
 pub fn membership_renew(
     state: State<AppState>,
@@ -53,6 +56,7 @@ pub fn membership_renew(
     paid_cents: Option<i64>,
     payment_method: Option<PaymentMethod>,
     note: Option<String>,
+    ends_on: Option<String>,
 ) -> Result<Membership> {
     if price_cents < 0 {
         return Err(AppError::new(
@@ -72,7 +76,8 @@ pub fn membership_renew(
     super::members::load_member(&conn, member_id)?;
 
     let paid_through = current_coverage(&conn, member_id)?;
-    let (starts_on, ends_on) = dates::next_period(today(), paid_through);
+    let (starts_on, month_end) = dates::next_period(today(), paid_through);
+    let ends_on = chosen_end(starts_on, ends_on)?.unwrap_or(month_end);
 
     // Belt and braces: the stacking rule should make this impossible, but a
     // manually edited row or a future backdating feature could reintroduce it,
@@ -141,6 +146,26 @@ pub fn membership_void(state: State<AppState>, id: i64, reason: String) -> Resul
     Ok(())
 }
 
+/// The operator's end date, if they chose one, checked against the start the
+/// backend computed.
+fn chosen_end(
+    starts_on: chrono::NaiveDate,
+    ends_on: Option<String>,
+) -> Result<Option<chrono::NaiveDate>> {
+    let Some(raw) = blank_to_none(ends_on) else {
+        return Ok(None);
+    };
+    let end = parse_date(&raw, "ends_on")?;
+    if end < starts_on {
+        return Err(AppError::new(
+            "membership.end_before_start",
+            "the period cannot end before it starts",
+        )
+        .with("starts_on", starts_on));
+    }
+    Ok(Some(end))
+}
+
 /// The member's latest paid-through date, ignoring voided periods.
 fn current_coverage(conn: &Connection, member_id: i64) -> Result<Option<chrono::NaiveDate>> {
     let raw: Option<String> = conn.query_row(
@@ -174,5 +199,45 @@ fn latest_period(
             super::parse_date(&s, "stored start date")?,
             super::parse_date(&e, "stored end date")?,
         ))),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::chosen_end;
+    use chrono::NaiveDate;
+
+    fn d(s: &str) -> NaiveDate {
+        NaiveDate::parse_from_str(s, "%Y-%m-%d").unwrap()
+    }
+
+    #[test]
+    fn no_choice_keeps_the_default_month() {
+        assert_eq!(chosen_end(d("2026-03-01"), None).unwrap(), None);
+        assert_eq!(
+            chosen_end(d("2026-03-01"), Some("  ".into())).unwrap(),
+            None
+        );
+    }
+
+    #[test]
+    fn a_chosen_end_is_taken_as_is() {
+        let end = chosen_end(d("2026-03-01"), Some("2026-05-31".into())).unwrap();
+        assert_eq!(end, Some(d("2026-05-31")));
+        // A one-day period is still a period.
+        let same = chosen_end(d("2026-03-01"), Some("2026-03-01".into())).unwrap();
+        assert_eq!(same, Some(d("2026-03-01")));
+    }
+
+    #[test]
+    fn an_end_before_the_start_is_refused() {
+        let err = chosen_end(d("2026-03-01"), Some("2026-02-28".into())).unwrap_err();
+        assert_eq!(err.code, "membership.end_before_start");
+    }
+
+    #[test]
+    fn a_malformed_end_is_refused() {
+        let err = chosen_end(d("2026-03-01"), Some("31/03/2026".into())).unwrap_err();
+        assert_eq!(err.code, "date.invalid");
     }
 }
