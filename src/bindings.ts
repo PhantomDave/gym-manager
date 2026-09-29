@@ -10,7 +10,12 @@ paidThrough: string | null,
 /**
  * Expiry of the newest health certificate on file, or None if there is none.
  */
-certThrough: string | null, lastCheckin: string | null, };
+certThrough: string | null, lastCheckin: string | null, 
+/**
+ * Whether an ID document (`DocumentKind::IdCard`) was ever added and not
+ * deleted. Its expiry is not considered.
+ */
+hasIdDocument: boolean, };
 
 export type Member = { id: number, firstName: string, lastName: string, nationalId: string | null, birthDate: string | null, phone: string | null, email: string | null, emergencyContact: string | null, emergencyPhone: string | null, notes: string | null, 
 /**
@@ -43,11 +48,11 @@ export type DocumentInput = { memberId: number, kind: DocumentKind,
  */
 sourcePath: string | null, title: string | null, issuer: string | null, issuedOn: string | null, expiresOn: string | null, };
 
-export type MemberDetail = { member: Member, memberships: Array<Membership>, documents: Array<Document>, paidThrough: string | null, certThrough: string | null, };
+export type MemberDetail = { member: Member, memberships: Array<Membership>, documents: Array<Document>, paidThrough: string | null, certThrough: string | null, hasIdDocument: boolean, };
 
 export type Checkin = { id: number, memberId: number, at: string, membershipId: number | null, overrideReason: string | null, };
 
-export type Filter = "all" | "active" | "expiring" | "expired" | "certExpired" | "certMissing";
+export type Filter = "all" | "active" | "expiring" | "expired" | "certExpired" | "certMissing" | "idDocMissing";
 
 export type RenewalPreview = { startsOn: string, endsOn: string, priceCents: number, 
 /**
@@ -71,11 +76,11 @@ membershipId: number | null, };
 
 export type CheckinRow = { id: number, memberId: number, firstName: string, lastName: string, at: string, overrideReason: string | null, };
 
-export type Dashboard = { gymName: string, currency: string, today: string, activeMembers: number, expiringSoon: number, expired: number, certExpired: number, certMissing: number, checkinsToday: number, };
+export type Dashboard = { gymName: string, currency: string, today: string, activeMembers: number, expiringSoon: number, expired: number, certExpired: number, certMissing: number, idDocMissing: number, checkinsToday: number, };
 
 export type ExpiringDocument = { id: number, memberId: number, firstName: string, lastName: string, kind: DocumentKind, expiresOn: string, };
 
-export type ExpiryKind = "membership" | "certificate" | "certificate_missing";
+export type ExpiryKind = "membership" | "certificate" | "certificate_missing" | "id_document_missing";
 
 export type Expiry = { memberId: number, firstName: string, lastName: string, phone: string | null, kind: ExpiryKind, date: string, 
 /**

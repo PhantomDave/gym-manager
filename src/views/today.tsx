@@ -133,6 +133,7 @@ export function TodayView({
         { n: dash.expired, label: t("tile.expired"), filter: "expired", tone: "blocked" },
         { n: dash.certExpired, label: t("tile.cert_expired"), filter: "certExpired", tone: "blocked" },
         { n: dash.certMissing, label: t("tile.cert_missing"), filter: "certMissing", tone: "blocked" },
+        { n: dash.idDocMissing, label: t("tile.id_doc_missing"), filter: "idDocMissing", tone: "warn" },
         ...(FEATURES.checkins
           ? [{ n: dash.checkinsToday, label: t("tile.checkins"), filter: null, tone: "" as const }]
           : []),

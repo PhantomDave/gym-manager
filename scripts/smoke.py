@@ -71,13 +71,14 @@ BRIDGE_STUB = r"""
     dashboard: {
       gymName: "Smoke Test", currency: "EUR", today: today,
       activeMembers: 0, expiringSoon: 0, expired: 0,
-      certExpired: 0, certMissing: 0, checkinsToday: 0
+      certExpired: 0, certMissing: 0, idDocMissing: 0, checkinsToday: 0
     },
     checkins_today: [],
     documents_expiring: [],
     members_list: [],
     expiries_list: [],
-    certificates_missing: []
+    certificates_missing: [],
+    id_documents_missing: []
   };
   window.__SMOKE_CALLS__ = [];
   window.__TAURI__ = {
