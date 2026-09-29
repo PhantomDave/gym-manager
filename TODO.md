@@ -108,6 +108,10 @@ to anything non-obvious so it is still legible in three months.
       import.
 - [ ] **Bulk import** from whatever spreadsheet the gym is using today. This is
       likely the actual blocker to adoption.
+- [ ] **The membership card (tessera) is stored but not watched.** Its number
+      and expiry live on `member` (migration 0004) and show on the member card,
+      but the Expiries screen, the badges and the roster search ignore them. Add
+      them there once the desk says which of the three it actually needs.
 - [ ] **Expiry reminders** — a list to phone through, or exported to CSV. Email
       would mean network access and a new class of dependency; think first.
 

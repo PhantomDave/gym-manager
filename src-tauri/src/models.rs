@@ -68,6 +68,11 @@ pub struct Member {
     pub emergency_contact: Option<String>,
     pub emergency_phone: Option<String>,
     pub notes: Option<String>,
+    /// Free text: there is no teacher table, and a member may have several.
+    pub teachers: Option<String>,
+    pub card_number: Option<String>,
+    /// When the association card lapses. The form proposes 31 December.
+    pub card_expires_on: Option<String>,
     pub joined_on: String,
 }
 
@@ -84,6 +89,9 @@ pub struct MemberInput {
     pub emergency_contact: Option<String>,
     pub emergency_phone: Option<String>,
     pub notes: Option<String>,
+    pub teachers: Option<String>,
+    pub card_number: Option<String>,
+    pub card_expires_on: Option<String>,
 }
 
 /// How a renewal was paid. `Membership.payment_method` is `None` while

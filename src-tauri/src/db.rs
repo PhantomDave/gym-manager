@@ -16,6 +16,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("migrations/0001_init.sql"),
     include_str!("migrations/0002_language.sql"),
     include_str!("migrations/0003_optional_document_file.sql"),
+    include_str!("migrations/0004_member_card_teachers.sql"),
 ];
 
 /// Open (creating if needed) the database and bring it up to date.
@@ -146,6 +147,33 @@ mod tests {
             )
             .unwrap();
         assert_eq!(paid, None);
+    }
+
+    #[test]
+    fn member_carries_teachers_and_card() {
+        let conn = open_in_memory().unwrap();
+        conn.execute(
+            "INSERT INTO member (id, first_name, last_name, teachers, card_number, card_expires_on)
+             VALUES (1, 'Ada', 'Lovelace', 'Rossi, Bianchi', 'T-042', '2026-12-31')",
+            [],
+        )
+        .unwrap();
+        let row: (String, String, String) = conn
+            .query_row(
+                "SELECT teachers, card_number, card_expires_on FROM member WHERE id = 1",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(
+            row,
+            ("Rossi, Bianchi".into(), "T-042".into(), "2026-12-31".into())
+        );
+        // The view names its columns, so adding these must not have broken it.
+        let n: i64 = conn
+            .query_row("SELECT count(*) FROM member_status", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(n, 1);
     }
 
     #[test]

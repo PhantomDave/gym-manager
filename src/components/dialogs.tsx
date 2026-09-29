@@ -25,7 +25,11 @@ import type {
  * (whose optional fields are `string | null`) wherever it is sent to Rust. */
 type MemberFormValues = { [K in keyof MemberInput]: string };
 
-const EMPTY_MEMBER: MemberFormValues = {
+/** The association card normally lapses on 31 December of the year it was
+ * issued. Only a proposal: the operator can pick any other date. */
+const defaultCardExpiry = (): string => `${new Date().getFullYear()}-12-31`;
+
+const emptyMember = (): MemberFormValues => ({
   firstName: "",
   lastName: "",
   nationalId: "",
@@ -35,7 +39,10 @@ const EMPTY_MEMBER: MemberFormValues = {
   emergencyContact: "",
   emergencyPhone: "",
   notes: "",
-};
+  teachers: "",
+  cardNumber: "",
+  cardExpiresOn: defaultCardExpiry(),
+});
 
 /** SQLite gives NULL; form inputs want "". */
 function toInput(member: Member): MemberFormValues {
@@ -49,6 +56,9 @@ function toInput(member: Member): MemberFormValues {
     emergencyContact: member.emergencyContact ?? "",
     emergencyPhone: member.emergencyPhone ?? "",
     notes: member.notes ?? "",
+    teachers: member.teachers ?? "",
+    cardNumber: member.cardNumber ?? "",
+    cardExpiresOn: member.cardExpiresOn ?? defaultCardExpiry(),
   };
 }
 
@@ -63,7 +73,9 @@ export function MemberFormDialog({
   onDone: (id: number, message: string) => void;
 }) {
   const editing = member !== undefined;
-  const [form, setForm] = useState<MemberFormValues>(editing ? toInput(member) : EMPTY_MEMBER);
+  const [form, setForm] = useState<MemberFormValues>(() =>
+    editing ? toInput(member) : emptyMember(),
+  );
   const [errors, setErrors] = useState<{ firstName?: string; lastName?: string }>({});
   const [busy, setBusy] = useState(false);
 
@@ -129,6 +141,13 @@ export function MemberFormDialog({
           value={form.emergencyContact} onInput={set("emergencyContact")} />
         <Field id="f-ep" label={t("field.emergency_phone")} type="tel" inputMode="tel"
           value={form.emergencyPhone} onInput={set("emergencyPhone")} />
+        <Field id="f-teachers" label={t("field.teachers")}
+          value={form.teachers} onInput={set("teachers")} />
+        <Field id="f-card" label={t("field.card_number")}
+          value={form.cardNumber} onInput={set("cardNumber")} />
+        <DateField id="f-card-expiry" label={t("field.card_expires_on")}
+          value={form.cardExpiresOn} onInput={set("cardExpiresOn")}
+          from={thisYear - 5} to={thisYear + 5} hint={t("form.card_expiry_hint")} />
         <Field id="f-notes" label={t("field.notes")} full
           value={form.notes} onInput={set("notes")} />
       </div>

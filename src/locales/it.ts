@@ -86,6 +86,9 @@ const it = {
   "field.emergency_contact": "Chi chiamare in caso di emergenza",
   "field.emergency_phone": "Telefono per l'emergenza",
   "field.notes": "Note",
+  "field.teachers": "Insegnanti",
+  "field.card_number": "Numero tessera",
+  "field.card_expires_on": "Scadenza tessera",
   "field.joined_on": "Iscritto dal",
   "field.issued_on": "Data di rilascio",
   "field.expires_on": "Data di scadenza",
@@ -164,6 +167,7 @@ const it = {
   // Inside parentheses after the label, so it need not agree in gender with
   // the noun: "Cognome (da compilare)", "Data di scadenza (da compilare)".
   "form.required": "da compilare",
+  "form.card_expiry_hint": "Di solito il 31 dicembre, ma puoi scegliere un'altra data.",
   // Shown under a field left empty after trying to submit.
   "form.field_required": "Questo campo è obbligatorio.",
 

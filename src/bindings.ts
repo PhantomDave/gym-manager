@@ -12,9 +12,17 @@ paidThrough: string | null,
  */
 certThrough: string | null, lastCheckin: string | null, };
 
-export type Member = { id: number, firstName: string, lastName: string, nationalId: string | null, birthDate: string | null, phone: string | null, email: string | null, emergencyContact: string | null, emergencyPhone: string | null, notes: string | null, joinedOn: string, };
+export type Member = { id: number, firstName: string, lastName: string, nationalId: string | null, birthDate: string | null, phone: string | null, email: string | null, emergencyContact: string | null, emergencyPhone: string | null, notes: string | null, 
+/**
+ * Free text: there is no teacher table, and a member may have several.
+ */
+teachers: string | null, cardNumber: string | null, 
+/**
+ * When the association card lapses. The form proposes 31 December.
+ */
+cardExpiresOn: string | null, joinedOn: string, };
 
-export type MemberInput = { firstName: string, lastName: string, nationalId: string | null, birthDate: string | null, phone: string | null, email: string | null, emergencyContact: string | null, emergencyPhone: string | null, notes: string | null, };
+export type MemberInput = { firstName: string, lastName: string, nationalId: string | null, birthDate: string | null, phone: string | null, email: string | null, emergencyContact: string | null, emergencyPhone: string | null, notes: string | null, teachers: string | null, cardNumber: string | null, cardExpiresOn: string | null, };
 
 export type PaymentMethod = "cash" | "card" | "transfer";
 

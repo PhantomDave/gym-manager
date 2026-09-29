@@ -123,11 +123,13 @@ pub fn member_create(state: State<AppState>, input: MemberInput) -> Result<i64> 
     let conn = state.db();
     let (first, last) = validate_name(&input)?;
     let birth_date = optional_date(input.birth_date, "birth_date")?;
+    let card_expires_on = optional_date(input.card_expires_on, "card_expires_on")?;
 
     conn.execute(
         "INSERT INTO member (first_name, last_name, national_id, birth_date, phone,
-                             email, emergency_contact, emergency_phone, notes)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                             email, emergency_contact, emergency_phone, notes,
+                             teachers, card_number, card_expires_on)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
         params![
             first,
             last,
@@ -138,6 +140,9 @@ pub fn member_create(state: State<AppState>, input: MemberInput) -> Result<i64> 
             blank_to_none(input.emergency_contact),
             blank_to_none(input.emergency_phone),
             blank_to_none(input.notes),
+            blank_to_none(input.teachers),
+            blank_to_none(input.card_number),
+            card_expires_on,
         ],
     )
     .map_err(duplicate_id_hint)?;
@@ -150,12 +155,14 @@ pub fn member_update(state: State<AppState>, id: i64, input: MemberInput) -> Res
     let conn = state.db();
     let (first, last) = validate_name(&input)?;
     let birth_date = optional_date(input.birth_date, "birth_date")?;
+    let card_expires_on = optional_date(input.card_expires_on, "card_expires_on")?;
 
     let changed = conn
         .execute(
             "UPDATE member SET first_name = ?2, last_name = ?3, national_id = ?4,
                     birth_date = ?5, phone = ?6, email = ?7, emergency_contact = ?8,
-                    emergency_phone = ?9, notes = ?10
+                    emergency_phone = ?9, notes = ?10, teachers = ?11,
+                    card_number = ?12, card_expires_on = ?13
               WHERE id = ?1 AND archived_at IS NULL",
             params![
                 id,
@@ -168,6 +175,9 @@ pub fn member_update(state: State<AppState>, id: i64, input: MemberInput) -> Res
                 blank_to_none(input.emergency_contact),
                 blank_to_none(input.emergency_phone),
                 blank_to_none(input.notes),
+                blank_to_none(input.teachers),
+                blank_to_none(input.card_number),
+                card_expires_on,
             ],
         )
         .map_err(duplicate_id_hint)?;
@@ -224,7 +234,8 @@ fn duplicate_id_hint(err: rusqlite::Error) -> AppError {
 pub(crate) fn load_member(conn: &Connection, id: i64) -> Result<Member> {
     conn.query_row(
         "SELECT id, first_name, last_name, national_id, birth_date, phone, email,
-                emergency_contact, emergency_phone, notes, joined_on
+                emergency_contact, emergency_phone, notes, teachers,
+                card_number, card_expires_on, joined_on
            FROM member WHERE id = ?1",
         [id],
         |r| {
@@ -239,7 +250,10 @@ pub(crate) fn load_member(conn: &Connection, id: i64) -> Result<Member> {
                 emergency_contact: r.get(7)?,
                 emergency_phone: r.get(8)?,
                 notes: r.get(9)?,
-                joined_on: r.get(10)?,
+                teachers: r.get(10)?,
+                card_number: r.get(11)?,
+                card_expires_on: r.get(12)?,
+                joined_on: r.get(13)?,
             })
         },
     )
