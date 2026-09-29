@@ -84,10 +84,11 @@ not a success.
 
 ### Optional features
 
-**Check-ins and the payment method are switched off**, in `src/features.ts`.
-They are flags, not deletions: the `checkin` table, the `payment_method` column
-and the Rust commands behind both are intact and tested, and a flag flip brings
-the screens back with their history. Do not "finish the job" by removing the
+**Check-ins, payments and the payment method are switched off**, in
+`src/features.ts`. They are flags, not deletions: the `checkin` table, the
+money columns on `membership`, the `payment_method` column and the Rust
+commands behind them are intact and tested, and a flag flip brings the screens
+back with their history. Do not "finish the job" by removing the
 backend — see DECISIONS 19, and the rule below about never deleting money or
 people.
 

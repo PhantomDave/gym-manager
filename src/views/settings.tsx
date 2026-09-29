@@ -6,6 +6,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { LANGUAGES, t } from "../i18n.js";
 import { api, checkForUpdate, installUpdate, type UpdateInfo } from "../api.js";
+import { FEATURES } from "../features.js";
 import { Field, Select } from "../components/ui.js";
 import { centsToEuros, eurosToCents } from "../lib/format.js";
 import type { Settings } from "../types.js";
@@ -91,25 +92,29 @@ export function SettingsView({
             value={values.gym_name ?? ""}
             onInput={(v) => void save("gym_name", v)}
           />
-          <Field
-            id="s-price"
-            label={`${t("settings.default_price")} (${currency})`}
-            inputMode="decimal"
-            value={centsToEuros(Number(values.default_price_cents ?? 0))}
-            onInput={(v) => void save("default_price_cents", String(eurosToCents(v)))}
-          />
-          <Select
-            id="s-currency"
-            label={t("settings.currency")}
-            value={values.currency ?? "EUR"}
-            onInput={(v) => void save("currency", v)}
-            options={[
-              { value: "EUR", label: "EUR €" },
-              { value: "CHF", label: "CHF" },
-              { value: "GBP", label: "GBP £" },
-              { value: "USD", label: "USD $" },
-            ]}
-          />
+          {FEATURES.payments && (
+            <>
+              <Field
+                id="s-price"
+                label={`${t("settings.default_price")} (${currency})`}
+                inputMode="decimal"
+                value={centsToEuros(Number(values.default_price_cents ?? 0))}
+                onInput={(v) => void save("default_price_cents", String(eurosToCents(v)))}
+              />
+              <Select
+                id="s-currency"
+                label={t("settings.currency")}
+                value={values.currency ?? "EUR"}
+                onInput={(v) => void save("currency", v)}
+                options={[
+                  { value: "EUR", label: "EUR €" },
+                  { value: "CHF", label: "CHF" },
+                  { value: "GBP", label: "GBP £" },
+                  { value: "USD", label: "USD $" },
+                ]}
+              />
+            </>
+          )}
           {wholeNumber("grace_days", t("settings.grace_days"))}
           {wholeNumber("expiry_warning_days", t("settings.expiry_warning_days"))}
           {wholeNumber("cert_warning_days", t("settings.cert_warning_days"))}

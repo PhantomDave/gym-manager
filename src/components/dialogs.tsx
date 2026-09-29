@@ -206,8 +206,10 @@ export function RenewDialog({
     try {
       await api.membershipRenew({
         memberId,
-        priceCents: eurosToCents(price),
-        paidCents: eurosToCents(paid),
+        // With payments off nothing about money is asked, so nothing is
+        // claimed: zero, not the default fee — see src/features.ts.
+        priceCents: FEATURES.payments ? eurosToCents(price) : 0,
+        paidCents: FEATURES.payments ? eurosToCents(paid) : 0,
         paymentMethod: method,
         note,
         // Untouched, the backend recomputes the end itself rather than trusting
@@ -224,7 +226,7 @@ export function RenewDialog({
     <Dialog
       title={t("pay.title")}
       hint={preview.stacks ? t("pay.stacks") : t("pay.fresh")}
-      confirmText={t("pay.take")}
+      confirmText={FEATURES.payments ? t("pay.take") : t("pay.take_renewal")}
       onConfirm={confirm}
       onCancel={onClose}
       busy={busy}
@@ -243,11 +245,15 @@ export function RenewDialog({
           }}
           hint={t("pay.end_hint", { date: fmtDate(preview.endsOn) })} error={endError}
           from={startYear} to={startYear + 1} />
-        <Field id="p-price" label={`${t("field.price")} (${currency})`} inputMode="decimal"
-          autoFocus value={price} onInput={setPrice} />
-        <Field id="p-paid" label={`${t("field.paid")} (${currency})`} inputMode="decimal"
-          value={paid} onInput={setPaid} />
-        {FEATURES.paymentMethod && (
+        {FEATURES.payments && (
+          <>
+            <Field id="p-price" label={`${t("field.price")} (${currency})`} inputMode="decimal"
+              autoFocus value={price} onInput={setPrice} />
+            <Field id="p-paid" label={`${t("field.paid")} (${currency})`} inputMode="decimal"
+              value={paid} onInput={setPaid} />
+          </>
+        )}
+        {FEATURES.payments && FEATURES.paymentMethod && (
           <Select id="p-method" label={t("field.method")} value={method ?? "cash"}
             onInput={(v) => setMethod(v as PaymentMethod)}
             options={[
@@ -256,7 +262,8 @@ export function RenewDialog({
               { value: "transfer", label: t("pay.transfer") },
             ]} />
         )}
-        <Field id="p-note" label={t("field.note")} value={note} onInput={setNote} />
+        <Field id="p-note" label={t("field.note")} full={!FEATURES.payments} value={note}
+          onInput={setNote} />
       </div>
     </Dialog>
   );

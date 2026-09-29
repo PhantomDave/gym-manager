@@ -113,6 +113,7 @@ const en: Record<CatalogueKey, string> = {
   "pay.from": "From",
   "pay.to": "To",
   "pay.end_hint": "Usually one month ({date}), but you can pick another date.",
+  "pay.take_renewal": "Record the renewal",
   "pay.take": "Record the payment",
   "pay.done": "Renewal recorded.",
   "pay.owes": "still owes {amount}",
