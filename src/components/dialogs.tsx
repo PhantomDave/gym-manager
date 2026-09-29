@@ -186,7 +186,7 @@ export function RenewDialog({
   // null when the payment-method feature is off: the column is nullable, so the
   // renewal is recorded with no method rather than a guessed one.
   const [method, setMethod] = useState<PaymentMethod | null>(
-    FEATURES.paymentMethod ? "cash" : null,
+    FEATURES.payments && FEATURES.paymentMethod ? "cash" : null,
   );
   const [note, setNote] = useState("");
   const [endsOn, setEndsOn] = useState(preview.endsOn);
