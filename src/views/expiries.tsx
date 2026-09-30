@@ -1,6 +1,6 @@
 // The call list.
 //
-// Memberships and certificates arrive as one stream sorted by date, split into
+// Memberships, certificates and custom discipline expiries arrive as one stream sorted by date, split into
 // what has already lapsed and what is coming. Overdue leads, because that is
 // the actual work; upcoming is only the warning.
 
@@ -80,6 +80,12 @@ export function ExpiriesView({
   );
 }
 
+function kindLabel(r: Expiry): string {
+  if (r.kind === "membership") return t("expiries.memberships");
+  if (r.kind === "discipline") return t("expiries.discipline", { name: r.label ?? "" });
+  return t("expiries.certificates");
+}
+
 function Group({
   title,
   rows,
@@ -102,7 +108,7 @@ function Group({
         <div class="list">
           {rows.map((r) => (
             <button
-              key={`${r.kind}-${r.memberId}`}
+              key={`${r.kind}-${r.memberId}-${r.label ?? ""}`}
               class="row row-button"
               onClick={() => onOpenMember(r.memberId)}
             >
@@ -111,7 +117,7 @@ function Group({
                   {r.lastName}, {r.firstName}
                 </div>
                 <div class="sub">
-                  {r.kind === "membership" ? t("expiries.memberships") : t("expiries.certificates")}
+                  {kindLabel(r)}
                   {!dateless && ` · ${fmtDate(r.date)}`}
                 </div>
               </div>

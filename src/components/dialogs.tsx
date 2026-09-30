@@ -13,6 +13,7 @@ import { DateField } from "./DateField.js";
 import { Field, Select } from "./ui.js";
 import { centsToEuros, eurosToCents, fmtDate } from "../lib/format.js";
 import type {
+  Discipline,
   DocumentKind,
   Member,
   MemberInput,
@@ -65,6 +66,9 @@ export function MemberFormDialog({
   const editing = member !== undefined;
   const [form, setForm] = useState<MemberFormValues>(editing ? toInput(member) : EMPTY_MEMBER);
   const [errors, setErrors] = useState<{ firstName?: string; lastName?: string }>({});
+  // Names only: at creation there is no membership yet, so every discipline
+  // follows it. A custom expiry is set afterwards from the member card.
+  const [disciplines, setDisciplines] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
 
   const set =
@@ -91,7 +95,11 @@ export function MemberFormDialog({
         await api.memberUpdate(member.id, form);
         onDone(member.id, t("form.saved"));
       } else {
-        onDone(await api.memberCreate(form), t("form.created"));
+        const chosen = disciplines
+          .map((name) => name.trim())
+          .filter(Boolean)
+          .map((name) => ({ name, expiresOn: null }));
+        onDone(await api.memberCreate(form, chosen), t("form.created"));
       }
     } catch {
       setBusy(false);
@@ -132,6 +140,28 @@ export function MemberFormDialog({
         <Field id="f-notes" label={t("field.notes")} full
           value={form.notes} onInput={set("notes")} />
       </div>
+
+      {!editing && (
+        <fieldset class="form-block">
+          <legend class="field-label">{t("member.disciplines")}</legend>
+          {disciplines.map((name, i) => (
+            <div key={i} class="inline-entry">
+              <Field id={`f-disc-${i}`} label={`${t("discipline.name")} ${i + 1}`}
+                placeholder={t("discipline.name_placeholder")} value={name}
+                onInput={(v) => setDisciplines((ds) => ds.map((d, j) => (j === i ? v : d)))} />
+              <button type="button" class="btn btn-ghost btn-icon btn-danger"
+                aria-label={t("discipline.remove")}
+                onClick={() => setDisciplines((ds) => ds.filter((_, j) => j !== i))}>
+                ✕
+              </button>
+            </div>
+          ))}
+          <button type="button" class="btn" onClick={() => setDisciplines((ds) => [...ds, ""])}>
+            {t("discipline.add")}
+          </button>
+          <div class="hint">{t("discipline.form_hint")}</div>
+        </fieldset>
+      )}
     </Dialog>
   );
 }
@@ -210,6 +240,76 @@ export function RenewDialog({
             ]} />
         )}
         <Field id="p-note" label={t("field.note")} value={note} onInput={setNote} />
+      </div>
+    </Dialog>
+  );
+}
+
+/**
+ * Add a discipline, or edit one. An empty expiry means it follows the
+ * membership; the button under a set date clears it back to that.
+ */
+export function DisciplineDialog({
+  memberId,
+  discipline,
+  onClose,
+  onDone,
+}: {
+  memberId: number;
+  discipline?: Discipline;
+  onClose: () => void;
+  onDone: (message: string) => void;
+}) {
+  const editing = discipline !== undefined;
+  const [name, setName] = useState(discipline?.name ?? "");
+  const [expiresOn, setExpiresOn] = useState(discipline?.expiresOn ?? "");
+  const [nameError, setNameError] = useState<string | undefined>(undefined);
+  const [busy, setBusy] = useState(false);
+
+  const confirm = async () => {
+    if (!name.trim()) {
+      setNameError(t("form.field_required"));
+      return;
+    }
+    setBusy(true);
+    const input = { name, expiresOn: expiresOn || null };
+    try {
+      if (editing) {
+        await api.disciplineUpdate(discipline.id, input);
+        onDone(t("discipline.saved"));
+      } else {
+        await api.disciplineAdd(memberId, input);
+        onDone(t("discipline.added"));
+      }
+    } catch {
+      setBusy(false);
+    }
+  };
+
+  const thisYear = new Date().getFullYear();
+
+  return (
+    <Dialog
+      title={editing ? t("discipline.title_edit", { name: discipline.name }) : t("discipline.title_add")}
+      confirmText={editing ? t("form.save") : t("discipline.add")}
+      onConfirm={confirm}
+      onCancel={onClose}
+      busy={busy}
+    >
+      <div class="form-grid">
+        <Field id="disc-name" label={t("discipline.name")} required full autoFocus
+          placeholder={t("discipline.name_placeholder")} value={name} error={nameError}
+          onInput={(v) => { setName(v); setNameError(undefined); }} />
+        <DateField id="disc-expires" label={t("discipline.expires_on")} value={expiresOn}
+          onInput={setExpiresOn} hint={t("discipline.expires_hint")}
+          from={thisYear - 1} to={thisYear + 5} />
+        {expiresOn && (
+          <div class="full">
+            <button type="button" class="btn btn-sm" onClick={() => setExpiresOn("")}>
+              {t("discipline.follow_membership")}
+            </button>
+          </div>
+        )}
       </div>
     </Dialog>
   );

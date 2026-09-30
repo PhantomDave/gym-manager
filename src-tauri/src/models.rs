@@ -165,6 +165,31 @@ pub struct DocumentInput {
     pub expires_on: Option<String>,
 }
 
+/// A discipline the member practises. `expires_on` is the desk's override;
+/// `through` is the date that actually applies — the override, or else the
+/// membership's `paid_through`, so a renewal moves every following discipline.
+#[derive(Debug, Serialize)]
+#[cfg_attr(test, derive(TS))]
+#[serde(rename_all = "camelCase")]
+pub struct Discipline {
+    pub id: i64,
+    pub member_id: i64,
+    pub name: String,
+    /// Custom expiry, or `None` when the discipline follows the membership.
+    pub expires_on: Option<String>,
+    /// Effective expiry; `None` only when following a member never enrolled.
+    pub through: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[cfg_attr(test, derive(TS))]
+#[serde(rename_all = "camelCase")]
+pub struct DisciplineInput {
+    pub name: String,
+    /// `None` (or blank) makes the discipline follow the membership.
+    pub expires_on: Option<String>,
+}
+
 #[derive(Debug, Serialize)]
 #[cfg_attr(test, derive(TS))]
 #[serde(rename_all = "camelCase")]
@@ -172,6 +197,7 @@ pub struct MemberDetail {
     pub member: Member,
     pub memberships: Vec<Membership>,
     pub documents: Vec<Document>,
+    pub disciplines: Vec<Discipline>,
     pub paid_through: Option<String>,
     pub cert_through: Option<String>,
 }

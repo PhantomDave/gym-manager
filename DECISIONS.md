@@ -586,3 +586,30 @@ unproven and keep installing the `.deb` by hand. See TODO.md.
 confirming it (promote it out of TODO.md) or watching it fail (which would
 mean the two guessed libraries were wrong, or too few, or the fix needs a
 library this repo has still never enumerated).
+
+---
+
+## 23. A discipline's expiry follows the membership unless overridden — 2026-09-30
+
+Members practise any number of disciplines (free-text names, one row each in
+`member_discipline`). By default a discipline expires with the membership; the
+desk can set a custom date on any one of them.
+
+**"Follows the membership" is stored as `expires_on IS NULL`, not as a copy of
+the date.** The date that applies (`Discipline.through`) is resolved when the
+row is read: the custom date, or else the member's latest live `ends_on`.
+Copying `paid_through` in at creation would be a cached status column under
+another name (decision 3): the first renewal would leave every discipline
+behind, and something would have to remember to move them.
+
+Only disciplines with a custom date appear on the Expiries screen as their own
+rows. One that follows the membership is already the membership row, and
+listing it again would put the same phone call on the list twice.
+
+The discipline badge uses the membership rule in `statusOf`'s module — grace
+and warning days included — because a discipline is paid time, not a
+certificate. Removal is a soft delete, like documents.
+
+**Revisit if:** the gym wants a fixed catalogue of disciplines (names in
+Settings, filtering by discipline) — the free-text column would then gain a
+foreign key, with a migration folding the existing spellings together.

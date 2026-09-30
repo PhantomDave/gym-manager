@@ -331,10 +331,29 @@ class Seeder:
         self.certificate(member_id, cert, first, last)
         self.extra_documents(member_id, first, last)
         self.checkins(member_id, membership, cert)
+        self.disciplines(member_id)
 
         if not archived:
             self.plan.append((member_id, membership, cert))
         return member_id
+
+    def disciplines(self, member_id: int) -> None:
+        """Most members practise one to three disciplines; about one in four of
+        those carries a custom expiry, some past and some ahead, so both the
+        card and the expiries screen have something to show.
+
+        Drawn from their own generator, seeded by the member, so adding this
+        did not reshuffle every name and date the seeder produced before."""
+        rng = random.Random(member_id)
+        for name in rng.sample(DISCIPLINES, rng.choice([0, 1, 1, 2, 2, 3])):
+            expires_on = (
+                (self.today + timedelta(days=rng.randint(-40, 80))).isoformat()
+                if rng.random() < 0.25 else None
+            )
+            self.conn.execute(
+                "INSERT INTO member_discipline (member_id, name, expires_on) VALUES (?, ?, ?)",
+                (member_id, name, expires_on),
+            )
 
     def birth_date(self) -> date:
         year = self.today.year - self.rng.randint(18, 68)
@@ -524,6 +543,8 @@ NOTES = [
     "Paga sempre in contanti.",
     "Tesserino consegnato il primo giorno.",
 ]
+
+DISCIPLINES = ["Sala pesi", "Boxe", "Pilates", "Yoga", "Functional", "Spinning", "Kickboxing"]
 
 ISSUERS = [
     "Dott. Bianchi — Centro Medico Aurora",
