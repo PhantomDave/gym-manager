@@ -53,6 +53,15 @@ function toInput(member: Member): MemberFormValues {
   };
 }
 
+/** One discipline row on the new-member form. */
+interface DisciplineEntry {
+  key: number;
+  name: string;
+  /** "" means it follows the membership. */
+  expiresOn: string;
+  error?: string;
+}
+
 /** Create or edit a member. One form for both — only the verb changes. */
 export function MemberFormDialog({
   member,
@@ -66,9 +75,12 @@ export function MemberFormDialog({
   const editing = member !== undefined;
   const [form, setForm] = useState<MemberFormValues>(editing ? toInput(member) : EMPTY_MEMBER);
   const [errors, setErrors] = useState<{ firstName?: string; lastName?: string }>({});
-  // Names only: at creation there is no membership yet, so every discipline
-  // follows it. A custom expiry is set afterwards from the member card.
-  const [disciplines, setDisciplines] = useState<string[]>([]);
+  // Each entry carries a stable key: a DateField keeps its own half-picked
+  // selects, and index keys would hand them to the next row on removal.
+  const [disciplines, setDisciplines] = useState<DisciplineEntry[]>([]);
+  const [nextKey, setNextKey] = useState(0);
+  const editDiscipline = (key: number, patch: Partial<DisciplineEntry>) =>
+    setDisciplines((ds) => ds.map((d) => (d.key === key ? { ...d, ...patch, error: undefined } : d)));
   const [busy, setBusy] = useState(false);
 
   const set =
@@ -84,7 +96,13 @@ export function MemberFormDialog({
     const nextErrors: typeof errors = {};
     if (!form.firstName.trim()) nextErrors.firstName = t("form.field_required");
     if (!form.lastName.trim()) nextErrors.lastName = t("form.field_required");
-    if (nextErrors.firstName || nextErrors.lastName) {
+    // A date with no name is a half-filled row, not one to drop in silence.
+    const checked = disciplines.map((d) =>
+      !d.name.trim() && d.expiresOn ? { ...d, error: t("form.field_required") } : d,
+    );
+    const disciplineError = checked.some((d) => d.error);
+    if (disciplineError) setDisciplines(checked);
+    if (nextErrors.firstName || nextErrors.lastName || disciplineError) {
       setErrors(nextErrors);
       return;
     }
@@ -96,9 +114,8 @@ export function MemberFormDialog({
         onDone(member.id, t("form.saved"));
       } else {
         const chosen = disciplines
-          .map((name) => name.trim())
-          .filter(Boolean)
-          .map((name) => ({ name, expiresOn: null }));
+          .filter((d) => d.name.trim())
+          .map((d) => ({ name: d.name, expiresOn: d.expiresOn || null }));
         onDone(await api.memberCreate(form, chosen), t("form.created"));
       }
     } catch {
@@ -144,19 +161,29 @@ export function MemberFormDialog({
       {!editing && (
         <fieldset class="form-block">
           <legend class="field-label">{t("member.disciplines")}</legend>
-          {disciplines.map((name, i) => (
-            <div key={i} class="inline-entry">
-              <Field id={`f-disc-${i}`} label={`${t("discipline.name")} ${i + 1}`}
-                placeholder={t("discipline.name_placeholder")} value={name}
-                onInput={(v) => setDisciplines((ds) => ds.map((d, j) => (j === i ? v : d)))} />
-              <button type="button" class="btn btn-ghost btn-icon btn-danger"
-                aria-label={t("discipline.remove")}
-                onClick={() => setDisciplines((ds) => ds.filter((_, j) => j !== i))}>
-                ✕
-              </button>
+          {disciplines.map((d, i) => (
+            <div key={d.key} class="discipline-entry">
+              <div class="inline-entry">
+                <Field id={`f-disc-${d.key}`} label={`${t("discipline.name")} ${i + 1}`}
+                  placeholder={t("discipline.name_placeholder")} value={d.name} error={d.error}
+                  onInput={(v) => editDiscipline(d.key, { name: v })} />
+                <button type="button" class="btn btn-ghost btn-icon btn-danger"
+                  aria-label={t("discipline.remove")}
+                  onClick={() => setDisciplines((ds) => ds.filter((x) => x.key !== d.key))}>
+                  ✕
+                </button>
+              </div>
+              <DateField id={`f-disc-exp-${d.key}`} label={t("discipline.expires_on")}
+                value={d.expiresOn} hint={t("discipline.expires_hint")}
+                onInput={(v) => editDiscipline(d.key, { expiresOn: v })}
+                from={thisYear - 1} to={thisYear + 5} />
             </div>
           ))}
-          <button type="button" class="btn" onClick={() => setDisciplines((ds) => [...ds, ""])}>
+          <button type="button" class="btn"
+            onClick={() => {
+              setDisciplines((ds) => [...ds, { key: nextKey, name: "", expiresOn: "" }]);
+              setNextKey((k) => k + 1);
+            }}>
             {t("discipline.add")}
           </button>
           <div class="hint">{t("discipline.form_hint")}</div>

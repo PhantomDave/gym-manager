@@ -93,7 +93,7 @@ const it = {
   "discipline.expires_hint": "Lascia vuoto per farla scadere insieme all'abbonamento.",
   "discipline.follow_membership": "Fai scadere con l'abbonamento",
   "discipline.form_hint":
-    "Scadono insieme all'abbonamento. Una scadenza diversa si imposta poi dalla scheda.",
+    "Senza una scadenza personalizzata, ogni disciplina scade insieme all'abbonamento.",
   "discipline.added": "Disciplina aggiunta.",
   "discipline.saved": "Disciplina salvata.",
   "discipline.removed": "Disciplina rimossa.",

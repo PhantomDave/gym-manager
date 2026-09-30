@@ -681,7 +681,7 @@ def main() -> int:
     if existing:
         print(f"--reset: deleting {existing} members and everything attached "
               f"to them from {args.db}")
-        for table in ("checkin", "document", "membership", "member"):
+        for table in ("checkin", "document", "membership", "member_discipline", "member"):
             conn.execute(f"DELETE FROM {table}")
         conn.commit()
 

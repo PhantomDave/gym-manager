@@ -76,7 +76,7 @@ const en: Record<CatalogueKey, string> = {
   "discipline.expires_hint": "Leave empty to have it expire with the membership.",
   "discipline.follow_membership": "Expire with the membership",
   "discipline.form_hint":
-    "They expire with the membership. A different expiry can be set later from the card.",
+    "Without a custom expiry, each discipline expires with the membership.",
   "discipline.added": "Discipline added.",
   "discipline.saved": "Discipline saved.",
   "discipline.removed": "Discipline removed.",
