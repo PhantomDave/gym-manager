@@ -73,7 +73,7 @@ function certificateBadge(
 /**
  * Badge for a discipline, from the expiry that applies to it. The same rule as
  * the membership — grace and warning days included — because a discipline is
- * paid time too; `null` means it follows a membership that does not exist.
+ * covered time, not a certificate; `null` means it follows a membership that does not exist.
  */
 export const disciplineBadge = (through: string | null, settings: StatusSettings): BadgeSpec =>
   membershipBadge(through, settings);

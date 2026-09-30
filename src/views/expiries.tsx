@@ -1,8 +1,9 @@
 // The call list.
 //
-// Memberships, certificates and custom discipline expiries arrive as one stream sorted by date, split into
-// what has already lapsed and what is coming. Overdue leads, because that is
-// the actual work; upcoming is only the warning.
+// Memberships, certificates and custom discipline expiries arrive as one
+// stream sorted by date, split into what has already lapsed and what is
+// coming. Overdue leads, because that is the actual work; upcoming is only the
+// warning.
 
 import { useEffect, useState } from "preact/hooks";
 import { t, type MessageKey } from "../i18n.js";
