@@ -10,7 +10,6 @@ import type {
   Checkin,
   CheckinRow,
   Dashboard,
-  Discipline,
   DisciplineInput,
   Document,
   DocumentInput,
@@ -120,7 +119,7 @@ export const api = {
   membershipVoid: (id: number, reason: string) => call<null>("membership_void", { id, reason }),
 
   disciplineAdd: (memberId: number, input: DisciplineInput) =>
-    call<Discipline>("discipline_add", { memberId, input }),
+    call<null>("discipline_add", { memberId, input }),
   disciplineUpdate: (id: number, input: DisciplineInput) =>
     call<null>("discipline_update", { id, input }),
   disciplineRemove: (id: number) => call<null>("discipline_remove", { id }),

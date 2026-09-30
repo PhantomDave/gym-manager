@@ -73,10 +73,13 @@ function certificateBadge(
 /**
  * Badge for a discipline, from the expiry that applies to it. The same rule as
  * the membership — grace and warning days included — because a discipline is
- * covered time, not a certificate; `null` means it follows a membership that does not exist.
+ * covered time, not a certificate. `null` means it follows a membership that
+ * does not exist yet, which is not the same as "never enrolled".
  */
 export const disciplineBadge = (through: string | null, settings: StatusSettings): BadgeSpec =>
-  membershipBadge(through, settings);
+  through === null
+    ? { tone: "blocked", text: t("discipline.no_membership") }
+    : membershipBadge(through, settings);
 
 /** Tone for a document row, from its expiry. Documents without one are neutral. */
 export function documentTone(expiresOn: string | null, certWarnDays: number): Tone {

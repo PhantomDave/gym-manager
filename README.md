@@ -131,9 +131,10 @@ point it at a real deployment. The seeded gym is named "Palestra Demo" and the
 certificates are generated PDFs that say so on the page.
 
 To test a change against a realistic roster, `scripts/demo.sh` backs up the
-app's database to `demo-backups/`, reseeds it with 200 members and starts
-`cargo tauri dev` (`--members N` for another size, `--no-run` to seed only).
-Development machines only: it wipes the database it finds.
+app's database to `demo-backups/`, replaces it with a fresh one seeded with
+200 members and starts `cargo tauri dev` (`--members N` for another size,
+`--no-run` to seed only). Development machines only: it discards the database
+it finds.
 
 Build the installable package:
 

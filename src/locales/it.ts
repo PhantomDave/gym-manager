@@ -85,6 +85,9 @@ const it = {
   "discipline.add": "Aggiungi disciplina",
   "discipline.edit": "Modifica",
   "discipline.remove": "Rimuovi",
+  "discipline.edit_named": "Modifica {name}",
+  "discipline.remove_named": "Rimuovi {name}",
+  "discipline.no_membership": "Nessun abbonamento",
   "discipline.follows": "scade con l'abbonamento",
   "discipline.custom": "scadenza personalizzata",
   "discipline.title_add": "Aggiungi una disciplina",
@@ -196,6 +199,8 @@ const it = {
   "form.card_expiry_hint": "Di solito il 31 dicembre, ma puoi scegliere un'altra data.",
   // Shown under a field left empty after trying to submit.
   "form.field_required": "Questo campo è obbligatorio.",
+  // Shown under a date whose day, month or year is still unset.
+  "form.date_incomplete": "Completa la data, oppure lasciala tutta vuota.",
 
   "archive.title": "Togliere {name} dagli iscritti?",
   "archive.hint":

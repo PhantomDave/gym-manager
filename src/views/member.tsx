@@ -151,13 +151,14 @@ export function MemberDrawer({
                     <span class={`badge ${badge.tone}`}>{badge.text}</span>
                     <button
                       class="btn btn-sm"
+                      aria-label={t("discipline.edit_named", { name: d.name })}
                       onClick={() => setDialog({ kind: "discipline", discipline: d })}
                     >
                       {t("discipline.edit")}
                     </button>
                     <button
                       class="btn btn-ghost btn-sm btn-danger"
-                      aria-label={t("discipline.remove")}
+                      aria-label={t("discipline.remove_named", { name: d.name })}
                       onClick={async () => {
                         await api.disciplineRemove(d.id);
                         after(t("discipline.removed"));

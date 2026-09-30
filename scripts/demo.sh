@@ -6,7 +6,7 @@
 #     scripts/demo.sh --members 80   # a different size
 #     scripts/demo.sh --no-run       # seed only
 #
-# It WIPES the app's database (seed.py --reset), after copying it to
+# It REPLACES the app's database with a fresh one, after copying the old one to
 # demo-backups/ next to it. That is fine on a development machine and never
 # acceptable on the gym's: nothing here can tell the two apart, so never run
 # it on the desk.
@@ -49,7 +49,13 @@ if [[ -f "$db" ]]; then
   echo "previous database saved to $backup"
 fi
 
-python3 "$root/scripts/seed.py" --db "$db" --reset --members "$members"
+# A new file rather than seed.py --reset: --reset empties the tables but keeps
+# the schema, and migrations are tracked by number, so a database last opened
+# by a branch whose migrations were numbered differently would be seeded, and
+# booted, on the wrong schema.
+rm -f "$db" "$db-wal" "$db-shm"
+
+python3 "$root/scripts/seed.py" --db "$db" --members "$members"
 
 if [[ $run -eq 1 ]]; then
   cd "$root/src-tauri"

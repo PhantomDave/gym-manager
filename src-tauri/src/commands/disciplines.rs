@@ -17,11 +17,11 @@ pub fn discipline_add(
     state: State<AppState>,
     member_id: i64,
     input: DisciplineInput,
-) -> Result<Discipline> {
+) -> Result<()> {
     let conn = state.db();
     super::members::load_member(&conn, member_id)?;
-    let id = insert(&conn, member_id, input)?;
-    load(&conn, id)
+    insert(&conn, member_id, input)?;
+    Ok(())
 }
 
 /// Rename, set a custom expiry, or clear it (`expires_on: None`) so the
@@ -85,11 +85,6 @@ pub(crate) fn list(conn: &Connection, member_id: i64) -> Result<Vec<Discipline>>
         .map_err(Into::into)
 }
 
-fn load(conn: &Connection, id: i64) -> Result<Discipline> {
-    conn.query_row(&format!("{SELECT} WHERE d.id = ?1"), [id], map_discipline)
-        .map_err(Into::into)
-}
-
 /// The paid-through date is computed here rather than read from
 /// `member_status`, because that view hides archived members and an archived
 /// member's card still shows what they practised.
@@ -117,9 +112,13 @@ fn validate(input: DisciplineInput) -> Result<(String, Option<String>)> {
 }
 
 fn duplicate_hint(err: rusqlite::Error, name: &str) -> AppError {
-    // SQLite names either the columns or the index, depending on version.
+    // Only the unique index means "already listed"; any other constraint on
+    // this table is a different error and keeps its own code. SQLite names
+    // either the columns or the index, depending on version.
     let msg = err.to_string();
-    if msg.contains("member_discipline.") || msg.contains("idx_discipline_member_name") {
+    if msg.contains("UNIQUE constraint failed")
+        && (msg.contains("member_discipline.") || msg.contains("idx_discipline_member_name"))
+    {
         AppError::new(
             "discipline.duplicate",
             "the member already has that discipline",
@@ -156,6 +155,13 @@ mod tests {
         conn
     }
 
+    /// The member's one live discipline.
+    fn only(conn: &Connection) -> Discipline {
+        let mut all = list(conn, 1).unwrap();
+        assert_eq!(all.len(), 1);
+        all.remove(0)
+    }
+
     fn pay(conn: &Connection, starts: &str, ends: &str) {
         conn.execute(
             "INSERT INTO membership (member_id, starts_on, ends_on, price_cents)
@@ -168,17 +174,14 @@ mod tests {
     #[test]
     fn follows_the_membership_and_moves_with_a_renewal() {
         let conn = setup();
-        let id = insert(&conn, 1, input("Boxe", None)).unwrap();
-        assert_eq!(load(&conn, id).unwrap().through, None);
+        insert(&conn, 1, input("Boxe", None)).unwrap();
+        assert_eq!(only(&conn).through, None);
 
         pay(&conn, "2026-01-01", "2026-01-31");
-        assert_eq!(
-            load(&conn, id).unwrap().through.as_deref(),
-            Some("2026-01-31")
-        );
+        assert_eq!(only(&conn).through.as_deref(), Some("2026-01-31"));
 
         pay(&conn, "2026-02-01", "2026-02-28");
-        let d = load(&conn, id).unwrap();
+        let d = only(&conn);
         assert_eq!(d.expires_on, None);
         assert_eq!(d.through.as_deref(), Some("2026-02-28"));
     }
@@ -188,13 +191,10 @@ mod tests {
         let conn = setup();
         pay(&conn, "2026-01-01", "2026-01-31");
         let id = insert(&conn, 1, input("Pilates", Some("2026-06-30"))).unwrap();
-        assert_eq!(
-            load(&conn, id).unwrap().through.as_deref(),
-            Some("2026-06-30")
-        );
+        assert_eq!(only(&conn).through.as_deref(), Some("2026-06-30"));
 
         update(&conn, id, input("Pilates", Some(""))).unwrap();
-        let d = load(&conn, id).unwrap();
+        let d = only(&conn);
         assert_eq!(d.expires_on, None);
         assert_eq!(d.through.as_deref(), Some("2026-01-31"));
     }

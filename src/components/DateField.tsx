@@ -23,6 +23,13 @@ export interface DateFieldProps {
   hint?: string;
   /** Set after a failed submit; shown in place of `hint` and marks the field. */
   error?: string;
+  /**
+   * Told whether some but not all of the three selects are set. `onInput`
+   * sends "" for such a date, which a caller whose empty value means
+   * something (a discipline following the membership) cannot tell apart from
+   * a date left blank on purpose.
+   */
+  onPartial?: (partial: boolean) => void;
 }
 
 /** Days in a month, so 31 February can never be selected. */
@@ -39,6 +46,7 @@ export function DateField({
   to,
   hint,
   error,
+  onPartial,
 }: DateFieldProps) {
   const thisYear = new Date().getFullYear();
   const firstYear = from ?? thisYear - 5;
@@ -64,6 +72,7 @@ export function DateField({
     if (value !== lastValue.current) {
       lastValue.current = value;
       setParts(parse(value));
+      onPartial?.(false);
     }
   }, [value]);
 
@@ -77,6 +86,7 @@ export function DateField({
     const next = !year || !month || !clamped ? "" : `${year}-${pad(month)}-${pad(clamped)}`;
     lastValue.current = next;
     onInput(next);
+    onPartial?.(!next && Boolean(year || month || clamped));
   };
 
   const years: number[] = [];

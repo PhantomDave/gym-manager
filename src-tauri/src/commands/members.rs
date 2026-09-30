@@ -134,10 +134,10 @@ pub fn member_get(state: State<AppState>, id: i64) -> Result<MemberDetail> {
 pub fn member_create(
     state: State<AppState>,
     input: MemberInput,
-    disciplines: Option<Vec<DisciplineInput>>,
+    disciplines: Vec<DisciplineInput>,
 ) -> Result<i64> {
     let conn = state.db();
-    create(&conn, input, disciplines.unwrap_or_default())
+    create(&conn, input, disciplines)
 }
 
 fn create(conn: &Connection, input: MemberInput, disciplines: Vec<DisciplineInput>) -> Result<i64> {
