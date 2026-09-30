@@ -6,6 +6,11 @@ use crate::error::{AppError, Result};
 use crate::models::*;
 use crate::AppState;
 
+/// "No ID document on file", as a clause over `member_status`. The roster
+/// filter, the dashboard tile and the Expiries list all use this one string so
+/// their counts cannot drift apart.
+pub(crate) const ID_DOC_MISSING: &str = "NOT has_id_document";
+
 /// List members, optionally filtered and searched.
 ///
 /// The filters are expressed against the `member_status` view, so "active" and
@@ -35,6 +40,7 @@ pub fn members_list(
         Filter::Expired => "paid_through IS NULL OR paid_through < :today",
         Filter::CertExpired => "cert_through IS NOT NULL AND cert_through < :today",
         Filter::CertMissing => "cert_through IS NULL",
+        Filter::IdDocMissing => ID_DOC_MISSING,
     };
 
     let needle = blank_to_none(query).map(|q| format!("%{}%", q.to_lowercase()));
@@ -47,7 +53,7 @@ pub fn members_list(
 
     let sql = format!(
         "SELECT id, first_name, last_name, phone, email, joined_on,
-                paid_through, cert_through, last_checkin
+                paid_through, cert_through, last_checkin, has_id_document
            FROM member_status
           WHERE ({clause}) {search}
           ORDER BY last_name COLLATE NOCASE, first_name COLLATE NOCASE
@@ -105,10 +111,10 @@ pub fn member_get(state: State<AppState>, id: i64) -> Result<MemberDetail> {
 
     let disciplines = super::disciplines::list(&conn, id)?;
 
-    let (paid_through, cert_through) = conn.query_row(
-        "SELECT paid_through, cert_through FROM member_status WHERE id = ?1",
+    let (paid_through, cert_through, has_id_document) = conn.query_row(
+        "SELECT paid_through, cert_through, has_id_document FROM member_status WHERE id = ?1",
         [id],
-        |r| Ok((r.get(0)?, r.get(1)?)),
+        |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
     )?;
 
     Ok(MemberDetail {
@@ -118,6 +124,7 @@ pub fn member_get(state: State<AppState>, id: i64) -> Result<MemberDetail> {
         disciplines,
         paid_through,
         cert_through,
+        has_id_document,
     })
 }
 
@@ -136,12 +143,14 @@ pub fn member_create(
 fn create(conn: &Connection, input: MemberInput, disciplines: Vec<DisciplineInput>) -> Result<i64> {
     let (first, last) = validate_name(&input)?;
     let birth_date = optional_date(input.birth_date, "birth_date")?;
+    let card_expires_on = optional_date(input.card_expires_on, "card_expires_on")?;
 
     let tx = conn.unchecked_transaction()?;
     tx.execute(
         "INSERT INTO member (first_name, last_name, national_id, birth_date, phone,
-                             email, emergency_contact, emergency_phone, notes)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                             email, emergency_contact, emergency_phone, notes,
+                             teachers, card_number, card_expires_on)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
         params![
             first,
             last,
@@ -152,6 +161,9 @@ fn create(conn: &Connection, input: MemberInput, disciplines: Vec<DisciplineInpu
             blank_to_none(input.emergency_contact),
             blank_to_none(input.emergency_phone),
             blank_to_none(input.notes),
+            blank_to_none(input.teachers),
+            blank_to_none(input.card_number),
+            card_expires_on,
         ],
     )
     .map_err(duplicate_id_hint)?;
@@ -169,12 +181,14 @@ pub fn member_update(state: State<AppState>, id: i64, input: MemberInput) -> Res
     let conn = state.db();
     let (first, last) = validate_name(&input)?;
     let birth_date = optional_date(input.birth_date, "birth_date")?;
+    let card_expires_on = optional_date(input.card_expires_on, "card_expires_on")?;
 
     let changed = conn
         .execute(
             "UPDATE member SET first_name = ?2, last_name = ?3, national_id = ?4,
                     birth_date = ?5, phone = ?6, email = ?7, emergency_contact = ?8,
-                    emergency_phone = ?9, notes = ?10
+                    emergency_phone = ?9, notes = ?10, teachers = ?11,
+                    card_number = ?12, card_expires_on = ?13
               WHERE id = ?1 AND archived_at IS NULL",
             params![
                 id,
@@ -187,6 +201,9 @@ pub fn member_update(state: State<AppState>, id: i64, input: MemberInput) -> Res
                 blank_to_none(input.emergency_contact),
                 blank_to_none(input.emergency_phone),
                 blank_to_none(input.notes),
+                blank_to_none(input.teachers),
+                blank_to_none(input.card_number),
+                card_expires_on,
             ],
         )
         .map_err(duplicate_id_hint)?;
@@ -243,7 +260,8 @@ fn duplicate_id_hint(err: rusqlite::Error) -> AppError {
 pub(crate) fn load_member(conn: &Connection, id: i64) -> Result<Member> {
     conn.query_row(
         "SELECT id, first_name, last_name, national_id, birth_date, phone, email,
-                emergency_contact, emergency_phone, notes, joined_on
+                emergency_contact, emergency_phone, notes, teachers,
+                card_number, card_expires_on, joined_on
            FROM member WHERE id = ?1",
         [id],
         |r| {
@@ -258,7 +276,10 @@ pub(crate) fn load_member(conn: &Connection, id: i64) -> Result<Member> {
                 emergency_contact: r.get(7)?,
                 emergency_phone: r.get(8)?,
                 notes: r.get(9)?,
-                joined_on: r.get(10)?,
+                teachers: r.get(10)?,
+                card_number: r.get(11)?,
+                card_expires_on: r.get(12)?,
+                joined_on: r.get(13)?,
             })
         },
     )
@@ -281,6 +302,7 @@ fn map_member_row(r: &rusqlite::Row) -> rusqlite::Result<MemberRow> {
         paid_through: r.get(6)?,
         cert_through: r.get(7)?,
         last_checkin: r.get(8)?,
+        has_id_document: r.get(9)?,
     })
 }
 
@@ -368,5 +390,26 @@ mod tests {
             .query_row("SELECT count(*) FROM member", [], |r| r.get(0))
             .unwrap();
         assert_eq!(n, 0);
+    }
+
+    /// The new columns sit between `notes` and `joined_on` in the SELECT, so a
+    /// shifted index would put the expiry in the card number without any error.
+    #[test]
+    fn load_member_maps_teachers_and_card() {
+        let conn = crate::db::open_in_memory().unwrap();
+        conn.execute(
+            "INSERT INTO member (id, first_name, last_name, notes, teachers, card_number,
+                                 card_expires_on, joined_on)
+             VALUES (1, 'Ada', 'Lovelace', 'n', 'Rossi, Bianchi', 'T-042', '2026-12-31',
+                     '2026-01-15')",
+            [],
+        )
+        .unwrap();
+        let m = load_member(&conn, 1).unwrap();
+        assert_eq!(m.notes.as_deref(), Some("n"));
+        assert_eq!(m.teachers.as_deref(), Some("Rossi, Bianchi"));
+        assert_eq!(m.card_number.as_deref(), Some("T-042"));
+        assert_eq!(m.card_expires_on.as_deref(), Some("2026-12-31"));
+        assert_eq!(m.joined_on, "2026-01-15");
     }
 }

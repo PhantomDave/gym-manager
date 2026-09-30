@@ -191,6 +191,12 @@ export function MemberDrawer({
             <dd>
               {[member.emergencyContact, member.emergencyPhone].filter(Boolean).join(" · ") || "—"}
             </dd>
+            <dt>{t("field.card_number")}</dt>
+            <dd>{member.cardNumber ?? "—"}</dd>
+            <dt>{t("field.card_expires_on")}</dt>
+            <dd>{fmtDate(member.cardExpiresOn)}</dd>
+            <dt>{t("field.teachers")}</dt>
+            <dd>{member.teachers ?? "—"}</dd>
             <dt>{t("field.joined_on")}</dt>
             <dd>{fmtDate(member.joinedOn)}</dd>
             {member.notes && (
@@ -202,41 +208,44 @@ export function MemberDrawer({
           </dl>
         </Section>
 
-        <Section title={t("member.history")}>
-          {memberships.length > 0 ? (
-            <div class="list">
-              {memberships.map((s) => (
-                <div key={s.id} class="row">
-                  <div class="grow">
-                    <div class={`name ${s.voidedAt ? "struck" : ""}`}>
-                      {fmtDate(s.startsOn)} → {fmtDate(s.endsOn)}
+        {/* Money is not recorded at this desk — see FEATURES.payments. */}
+        {FEATURES.payments && (
+          <Section title={t("member.history")}>
+            {memberships.length > 0 ? (
+              <div class="list">
+                {memberships.map((s) => (
+                  <div key={s.id} class="row">
+                    <div class="grow">
+                      <div class={`name ${s.voidedAt ? "struck" : ""}`}>
+                        {fmtDate(s.startsOn)} → {fmtDate(s.endsOn)}
+                      </div>
+                      <div class="sub">
+                        {fmtMoney(s.paidCents)}
+                        {FEATURES.paymentMethod &&
+                          s.paymentMethod &&
+                          ` · ${t(`pay.${s.paymentMethod}` as MessageKey)}`}
+                        {s.paidCents < s.priceCents &&
+                          ` · ${t("pay.owes", { amount: fmtMoney(s.priceCents - s.paidCents) })}`}
+                      </div>
                     </div>
-                    <div class="sub">
-                      {fmtMoney(s.paidCents)}
-                      {FEATURES.paymentMethod &&
-                        s.paymentMethod &&
-                        ` · ${t(`pay.${s.paymentMethod}` as MessageKey)}`}
-                      {s.paidCents < s.priceCents &&
-                        ` · ${t("pay.owes", { amount: fmtMoney(s.priceCents - s.paidCents) })}`}
-                    </div>
+                    {s.voidedAt ? (
+                      <span class="badge plain">{t("pay.cancelled")}</span>
+                    ) : (
+                      <button
+                        class="btn btn-ghost btn-sm"
+                        onClick={() => setDialog({ kind: "void", id: s.id })}
+                      >
+                        {t("pay.cancel")}
+                      </button>
+                    )}
                   </div>
-                  {s.voidedAt ? (
-                    <span class="badge plain">{t("pay.cancelled")}</span>
-                  ) : (
-                    <button
-                      class="btn btn-ghost btn-sm"
-                      onClick={() => setDialog({ kind: "void", id: s.id })}
-                    >
-                      {t("pay.cancel")}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <Empty>{t("member.no_history")}</Empty>
-          )}
-        </Section>
+                ))}
+              </div>
+            ) : (
+              <Empty>{t("member.no_history")}</Empty>
+            )}
+          </Section>
+        )}
 
         <Section title={t("member.documents")}>
           {others.length > 0 ? (

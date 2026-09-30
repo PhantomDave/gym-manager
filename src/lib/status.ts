@@ -1,6 +1,7 @@
 // The one status rule.
 //
-// The backend hands over two raw dates; every colour in the interface is
+// The backend hands over two raw dates and whether an ID document is on file;
+// every colour in the interface is
 // decided here and nowhere else. A view that needs to know whether someone is
 // in good standing calls this — it never compares dates itself.
 
@@ -16,20 +17,28 @@ export interface Status {
   tone: Tone;
   membership: BadgeSpec;
   certificate: BadgeSpec;
+  /** Membership and certificate, then the ID document only when it is missing. */
   badges: BadgeSpec[];
 }
 
 export function statusOf(
-  row: { paidThrough: string | null; certThrough: string | null },
+  row: { paidThrough: string | null; certThrough: string | null; hasIdDocument: boolean },
   settings: StatusSettings,
 ): Status {
   const membership = membershipBadge(row.paidThrough, settings);
   const certificate = certificateBadge(row.certThrough, settings);
+  // Amber, not red: a missing ID is paperwork to chase, not a reason to turn
+  // someone away at the door the way a missing certificate is. A member who
+  // has one gets no badge for it, so the rows stay as short as they were.
+  const idDocument: BadgeSpec | null = row.hasIdDocument
+    ? null
+    : { tone: "warn", text: t("status.id_doc_missing") };
+  const badges = [membership, certificate, ...(idDocument ? [idDocument] : [])];
   return {
-    tone: worst(membership.tone, certificate.tone),
+    tone: badges.reduce<Tone>((acc, b) => worst(acc, b.tone), "ok"),
     membership,
     certificate,
-    badges: [membership, certificate],
+    badges,
   };
 }
 

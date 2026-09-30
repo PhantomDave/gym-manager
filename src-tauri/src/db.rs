@@ -16,7 +16,9 @@ const MIGRATIONS: &[&str] = &[
     include_str!("migrations/0001_init.sql"),
     include_str!("migrations/0002_language.sql"),
     include_str!("migrations/0003_optional_document_file.sql"),
-    include_str!("migrations/0004_member_discipline.sql"),
+    include_str!("migrations/0004_member_card_teachers.sql"),
+    include_str!("migrations/0005_id_document_status.sql"),
+    include_str!("migrations/0006_member_discipline.sql"),
 ];
 
 /// Open (creating if needed) the database and bring it up to date.
@@ -147,6 +149,60 @@ mod tests {
             )
             .unwrap();
         assert_eq!(paid, None);
+    }
+
+    #[test]
+    fn member_carries_teachers_and_card() {
+        let conn = open_in_memory().unwrap();
+        conn.execute(
+            "INSERT INTO member (id, first_name, last_name, teachers, card_number, card_expires_on)
+             VALUES (1, 'Ada', 'Lovelace', 'Rossi, Bianchi', 'T-042', '2026-12-31')",
+            [],
+        )
+        .unwrap();
+        let row: (String, String, String) = conn
+            .query_row(
+                "SELECT teachers, card_number, card_expires_on FROM member WHERE id = 1",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(
+            row,
+            ("Rossi, Bianchi".into(), "T-042".into(), "2026-12-31".into())
+        );
+        // The view names its columns, so adding these must not have broken it.
+        let n: i64 = conn
+            .query_row("SELECT count(*) FROM member_status", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(n, 1);
+    }
+
+    #[test]
+    fn member_status_reports_whether_an_id_document_is_on_file() {
+        let conn = open_in_memory().unwrap();
+        conn.execute_batch(
+            "INSERT INTO member (id, first_name, last_name) VALUES
+               (1, 'Ada', 'Lovelace'), (2, 'Alan', 'Turing'), (3, 'Grace', 'Hopper');
+             -- 1: an ID card, no file attached. Counts.
+             INSERT INTO document (member_id, kind) VALUES (1, 'id_card');
+             -- 2: only a certificate. Does not count.
+             INSERT INTO document (member_id, kind, expires_on)
+               VALUES (2, 'health_cert', '2027-01-01');
+             -- 3: an ID card that was deleted. Does not count.
+             INSERT INTO document (member_id, kind, deleted_at)
+               VALUES (3, 'id_card', '2026-01-01 10:00:00');",
+        )
+        .unwrap();
+        let mut stmt = conn
+            .prepare("SELECT id, has_id_document FROM member_status ORDER BY id")
+            .unwrap();
+        let rows: Vec<(i64, bool)> = stmt
+            .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+        assert_eq!(rows, vec![(1, true), (2, false), (3, false)]);
     }
 
     #[test]

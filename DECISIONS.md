@@ -209,6 +209,16 @@ reasons, which are `{ code, params }` for the same reason.
 Start and end dates are computed in the backend, never taken from the frontend,
 so a stale form cannot bypass the stacking rule.
 
+**Update, 2026-09-29: the end date can be overridden.** The desk asked to set
+the expiry when registering a renewal. The start is still computed in the
+backend and never accepted from the form, so rules 2 and 3 hold. The end is
+still proposed by `next_period` (rule 1); the renewal dialog shows it in a
+`DateField`, and only when the operator changes it does the form send
+`ends_on`, which `membership_renew` checks is on or after the computed start
+and still runs through the overlap check. An untouched form sends nothing, so
+the backend recomputes the month rather than trusting a date that may have
+gone stale. The next renewal stacks on whatever end was recorded.
+
 **Grace periods are a display concept only.** Baking grace into `ends_on` would
 let it compound on every renewal.
 
@@ -415,6 +425,24 @@ certificate badges are unchanged and the card still says it in words.
 
 **Revisit if:** a third flag appears. Two is a config module; five would be an
 argument for the `setting` table and a screen behind a password.
+
+**Update, 2026-09-29: the third flag, `payments`.** The gym does not record
+money in this app. With the flag off the renewal dialog asks only for the end
+date and a note, the member card has no payment history, and Settings hides
+the monthly fee and currency. Renewals are recorded with `price_cents =
+paid_cents = 0` — "nothing recorded", not the default fee, for the same reason
+a hidden payment method is NULL rather than a guess. Amounts already recorded
+stay in the database and reappear with the flag.
+
+What the operator loses: the history section carried the only "cancel" for a
+period entered by mistake, so with `payments: false` a wrong renewal can no
+longer be voided from the interface (`membership_void` is still registered).
+If that bites, the fix is a void action somewhere that is not about money, not
+turning the history back on.
+
+Revisited as the rule above asks: still build-time constants. All three are
+the owner deciding once what this desk does, none is something a receptionist
+should toggle, and three is still a config module.
 
 ## 20. The stylesheet does not own a `<select>` until it says `appearance: none` — 2026-09-21
 

@@ -11,7 +11,7 @@ import { api, pickDocument } from "../api.js";
 import { Dialog } from "./Dialog.js";
 import { DateField } from "./DateField.js";
 import { Field, Select } from "./ui.js";
-import { centsToEuros, eurosToCents, fmtDate } from "../lib/format.js";
+import { centsToEuros, eurosToCents, fmtDate, today } from "../lib/format.js";
 import type {
   Discipline,
   DocumentKind,
@@ -26,7 +26,13 @@ import type {
  * (whose optional fields are `string | null`) wherever it is sent to Rust. */
 type MemberFormValues = { [K in keyof MemberInput]: string };
 
-const EMPTY_MEMBER: MemberFormValues = {
+/** The association card normally lapses on 31 December of the year it was
+ * issued. Only a proposal: the operator can pick any other date. It is offered
+ * on a new member and whenever a card number is first entered, never written
+ * over a stored NULL on edit — that would save a date nobody chose. */
+const defaultCardExpiry = (): string => `${today().slice(0, 4)}-12-31`;
+
+const emptyMember = (): MemberFormValues => ({
   firstName: "",
   lastName: "",
   nationalId: "",
@@ -36,7 +42,10 @@ const EMPTY_MEMBER: MemberFormValues = {
   emergencyContact: "",
   emergencyPhone: "",
   notes: "",
-};
+  teachers: "",
+  cardNumber: "",
+  cardExpiresOn: defaultCardExpiry(),
+});
 
 /** SQLite gives NULL; form inputs want "". */
 function toInput(member: Member): MemberFormValues {
@@ -50,6 +59,9 @@ function toInput(member: Member): MemberFormValues {
     emergencyContact: member.emergencyContact ?? "",
     emergencyPhone: member.emergencyPhone ?? "",
     notes: member.notes ?? "",
+    teachers: member.teachers ?? "",
+    cardNumber: member.cardNumber ?? "",
+    cardExpiresOn: member.cardExpiresOn ?? "",
   };
 }
 
@@ -73,7 +85,9 @@ export function MemberFormDialog({
   onDone: (id: number, message: string) => void;
 }) {
   const editing = member !== undefined;
-  const [form, setForm] = useState<MemberFormValues>(editing ? toInput(member) : EMPTY_MEMBER);
+  const [form, setForm] = useState<MemberFormValues>(() =>
+    editing ? toInput(member) : emptyMember(),
+  );
   const [errors, setErrors] = useState<{ firstName?: string; lastName?: string }>({});
   // Each entry carries a stable key: a DateField keeps its own half-picked
   // selects, and index keys would hand them to the next row on removal.
@@ -86,7 +100,15 @@ export function MemberFormDialog({
   const set =
     <K extends keyof MemberFormValues>(key: K) =>
     (value: string) => {
-      setForm((f) => ({ ...f, [key]: value }));
+      setForm((f) => {
+        const next = { ...f, [key]: value };
+        // A card number typed into a blank field brings the usual expiry with
+        // it, unless one is already there.
+        if (key === "cardNumber" && !f.cardNumber.trim() && value.trim() && !f.cardExpiresOn) {
+          next.cardExpiresOn = defaultCardExpiry();
+        }
+        return next;
+      });
       if (key === "firstName" || key === "lastName") {
         setErrors((e) => ({ ...e, [key]: undefined }));
       }
@@ -154,6 +176,13 @@ export function MemberFormDialog({
           value={form.emergencyContact} onInput={set("emergencyContact")} />
         <Field id="f-ep" label={t("field.emergency_phone")} type="tel" inputMode="tel"
           value={form.emergencyPhone} onInput={set("emergencyPhone")} />
+        <Field id="f-teachers" label={t("field.teachers")}
+          value={form.teachers} onInput={set("teachers")} />
+        <Field id="f-card" label={t("field.card_number")}
+          value={form.cardNumber} onInput={set("cardNumber")} />
+        <DateField id="f-card-expiry" label={t("field.card_expires_on")}
+          value={form.cardExpiresOn} onInput={set("cardExpiresOn")}
+          hint={t("form.card_expiry_hint")} />
         <Field id="f-notes" label={t("field.notes")} full
           value={form.notes} onInput={set("notes")} />
       </div>
@@ -193,7 +222,9 @@ export function MemberFormDialog({
   );
 }
 
-/** Sell one month. The dates come from the backend and are never editable. */
+/** Sell a period. The start comes from the backend and is never editable (it
+ * carries the stacking rule); the end is the backend's one-month proposal,
+ * which the operator may change. */
 export function RenewDialog({
   memberId,
   preview,
@@ -212,20 +243,35 @@ export function RenewDialog({
   // null when the payment-method feature is off: the column is nullable, so the
   // renewal is recorded with no method rather than a guessed one.
   const [method, setMethod] = useState<PaymentMethod | null>(
-    FEATURES.paymentMethod ? "cash" : null,
+    FEATURES.payments && FEATURES.paymentMethod ? "cash" : null,
   );
   const [note, setNote] = useState("");
+  const [endsOn, setEndsOn] = useState(preview.endsOn);
+  // The end can only fall in the start's year or the next: a slip on a wider
+  // year list would record a membership that runs for a decade, and years
+  // before the start would only be refused by the backend.
+  const startYear = parseInt(preview.startsOn.slice(0, 4), 10);
+  const [endError, setEndError] = useState<string | undefined>();
   const [busy, setBusy] = useState(false);
 
   const confirm = async () => {
+    if (!endsOn) {
+      setEndError(t("form.field_required"));
+      return;
+    }
     setBusy(true);
     try {
       await api.membershipRenew({
         memberId,
-        priceCents: eurosToCents(price),
-        paidCents: eurosToCents(paid),
+        // With payments off nothing about money is asked, so nothing is
+        // claimed: zero, not the default fee — see src/features.ts.
+        priceCents: FEATURES.payments ? eurosToCents(price) : 0,
+        paidCents: FEATURES.payments ? eurosToCents(paid) : 0,
         paymentMethod: method,
         note,
+        // Untouched, the backend recomputes the end itself rather than trusting
+        // a date that could be stale by the time this is sent.
+        endsOn: endsOn === preview.endsOn ? null : endsOn,
       });
       onDone(t("pay.done"));
     } catch {
@@ -237,7 +283,7 @@ export function RenewDialog({
     <Dialog
       title={t("pay.title")}
       hint={preview.stacks ? t("pay.stacks") : t("pay.fresh")}
-      confirmText={t("pay.take")}
+      confirmText={FEATURES.payments ? t("pay.take") : t("pay.take_renewal")}
       onConfirm={confirm}
       onCancel={onClose}
       busy={busy}
@@ -247,17 +293,24 @@ export function RenewDialog({
           <span class="k">{t("pay.from")}</span>
           {fmtDate(preview.startsOn)}
         </div>
-        <div>
-          <span class="k">{t("pay.to")}</span>
-          {fmtDate(preview.endsOn)}
-        </div>
       </div>
       <div class="form-grid">
-        <Field id="p-price" label={`${t("field.price")} (${currency})`} inputMode="decimal"
-          autoFocus value={price} onInput={setPrice} />
-        <Field id="p-paid" label={`${t("field.paid")} (${currency})`} inputMode="decimal"
-          value={paid} onInput={setPaid} />
-        {FEATURES.paymentMethod && (
+        <DateField id="p-ends" label={t("pay.to")} required value={endsOn}
+          onInput={(v) => {
+            setEndsOn(v);
+            setEndError(undefined);
+          }}
+          hint={t("pay.end_hint", { date: fmtDate(preview.endsOn) })} error={endError}
+          from={startYear} to={startYear + 1} />
+        {FEATURES.payments && (
+          <>
+            <Field id="p-price" label={`${t("field.price")} (${currency})`} inputMode="decimal"
+              autoFocus value={price} onInput={setPrice} />
+            <Field id="p-paid" label={`${t("field.paid")} (${currency})`} inputMode="decimal"
+              value={paid} onInput={setPaid} />
+          </>
+        )}
+        {FEATURES.payments && FEATURES.paymentMethod && (
           <Select id="p-method" label={t("field.method")} value={method ?? "cash"}
             onInput={(v) => setMethod(v as PaymentMethod)}
             options={[
@@ -266,7 +319,8 @@ export function RenewDialog({
               { value: "transfer", label: t("pay.transfer") },
             ]} />
         )}
-        <Field id="p-note" label={t("field.note")} value={note} onInput={setNote} />
+        <Field id="p-note" label={t("field.note")} full={!FEATURES.payments} value={note}
+          onInput={setNote} />
       </div>
     </Dialog>
   );

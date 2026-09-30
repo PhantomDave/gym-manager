@@ -52,6 +52,9 @@ pub struct MemberRow {
     /// Expiry of the newest health certificate on file, or None if there is none.
     pub cert_through: Option<String>,
     pub last_checkin: Option<String>,
+    /// Whether an ID document (`DocumentKind::IdCard`) was ever added and not
+    /// deleted. Its expiry is not considered.
+    pub has_id_document: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -68,6 +71,11 @@ pub struct Member {
     pub emergency_contact: Option<String>,
     pub emergency_phone: Option<String>,
     pub notes: Option<String>,
+    /// Free text: there is no teacher table, and a member may have several.
+    pub teachers: Option<String>,
+    pub card_number: Option<String>,
+    /// When the association card lapses. The form proposes 31 December.
+    pub card_expires_on: Option<String>,
     pub joined_on: String,
 }
 
@@ -84,6 +92,9 @@ pub struct MemberInput {
     pub emergency_contact: Option<String>,
     pub emergency_phone: Option<String>,
     pub notes: Option<String>,
+    pub teachers: Option<String>,
+    pub card_number: Option<String>,
+    pub card_expires_on: Option<String>,
 }
 
 /// How a renewal was paid. `Membership.payment_method` is `None` while
@@ -200,6 +211,7 @@ pub struct MemberDetail {
     pub disciplines: Vec<Discipline>,
     pub paid_through: Option<String>,
     pub cert_through: Option<String>,
+    pub has_id_document: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -225,4 +237,5 @@ pub enum Filter {
     Expired,
     CertExpired,
     CertMissing,
+    IdDocMissing,
 }

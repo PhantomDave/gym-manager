@@ -45,6 +45,7 @@ const it = {
   "tile.expired": "Scaduti",
   "tile.cert_expired": "Certificato scaduto",
   "tile.cert_missing": "Certificato mancante",
+  "tile.id_doc_missing": "Documento d'identità mancante",
   "tile.checkins": "Ingressi oggi",
 
   // Members ----------------------------------------------------------------
@@ -61,6 +62,7 @@ const it = {
   "filter.expired": "Scaduti",
   "filter.certExpired": "Certificato scaduto",
   "filter.certMissing": "Certificato mancante",
+  "filter.idDocMissing": "Documento d'identità mancante",
 
   // Member card ------------------------------------------------------------
   "member.details": "Dati anagrafici",
@@ -107,6 +109,9 @@ const it = {
   "field.emergency_contact": "Chi chiamare in caso di emergenza",
   "field.emergency_phone": "Telefono per l'emergenza",
   "field.notes": "Note",
+  "field.teachers": "Insegnanti",
+  "field.card_number": "Numero tessera",
+  "field.card_expires_on": "Scadenza tessera",
   "field.joined_on": "Iscritto dal",
   "field.issued_on": "Data di rilascio",
   "field.expires_on": "Data di scadenza",
@@ -149,6 +154,8 @@ const it = {
   "pay.fresh": "Non è in regola, quindi il mese nuovo parte da oggi.",
   "pay.from": "Dal",
   "pay.to": "Al",
+  "pay.end_hint": "Di solito un mese ({date}), ma puoi scegliere un'altra data.",
+  "pay.take_renewal": "Registra il rinnovo",
   "pay.take": "Registra il pagamento",
   "pay.done": "Rinnovo registrato.",
   "pay.owes": "deve ancora {amount}",
@@ -186,6 +193,7 @@ const it = {
   // Inside parentheses after the label, so it need not agree in gender with
   // the noun: "Cognome (da compilare)", "Data di scadenza (da compilare)".
   "form.required": "da compilare",
+  "form.card_expiry_hint": "Di solito il 31 dicembre, ma puoi scegliere un'altra data.",
   // Shown under a field left empty after trying to submit.
   "form.field_required": "Questo campo è obbligatorio.",
 
@@ -221,6 +229,7 @@ const it = {
   "status.ends_today": "Finisce oggi",
   "status.days_left_one": "{count} giorno",
   "status.days_left_other": "{count} giorni",
+  "status.id_doc_missing": "Documento d'identità mancante",
   "status.cert_valid": "Certificato valido",
   "status.cert_expired": "Certificato scaduto",
   "status.cert_missing": "Certificato mancante",
@@ -282,6 +291,7 @@ const it = {
   "err.membership.overlap": "Questo periodo si sovrappone a un mese già pagato.",
   "err.membership.negative_price": "La quota non può essere negativa.",
   "err.membership.negative_paid": "L'importo incassato non può essere negativo.",
+  "err.membership.end_before_start": "La fine del periodo non può essere prima dell'inizio.",
   "err.membership.void_reason_required": "Scrivi perché stai annullando il pagamento.",
   "err.document.not_found": "Il documento non esiste più.",
   "err.document.unknown_kind": "Tipo di documento non riconosciuto.",

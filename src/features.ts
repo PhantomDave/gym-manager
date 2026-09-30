@@ -1,7 +1,7 @@
 // Optional parts of the app, switched on and off in one place.
 //
-// This gym does not take attendance and does not want to record how each
-// person paid, so both are off. They are switched rather than deleted because
+// This gym does not take attendance and does not record money in this app at
+// all, so all three are off. They are switched rather than deleted because
 // the code and the database behind them are intact and a different desk may
 // want them: flip a flag here, rebuild, and the screens come back.
 //
@@ -30,8 +30,22 @@ export const FEATURES = {
   checkins: false,
 
   /**
+   * Record money: the fee and the amount taken on each renewal, the payment
+   * history on the member card (with its per-period "cancel"), and the monthly
+   * fee and currency in Settings.
+   *
+   * Off: the renewal dialog asks only for the end date and a note, and records
+   * the period with `price_cents = paid_cents = 0` — "no money recorded", not
+   * a guessed fee, the same reasoning as a NULL payment method below. The
+   * member card has no history section, so a period can no longer be voided
+   * from the interface; `membership_void` stays registered. Rows recorded
+   * before the flag was turned off keep their amounts and reappear with it.
+   */
+  payments: false,
+
+  /**
    * Ask how a renewal was paid (cash, card, transfer) and show it in the
-   * member's payment history.
+   * member's payment history. Has no effect while `payments` is off.
    *
    * Off: the renewal dialog asks for the amount only and sends no method, so
    * new rows have `payment_method = NULL` — which the column already allows.

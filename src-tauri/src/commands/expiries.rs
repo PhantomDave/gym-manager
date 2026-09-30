@@ -21,6 +21,7 @@ pub enum ExpiryKind {
     Membership,
     Certificate,
     CertificateMissing,
+    IdDocumentMissing,
     /// A discipline with a custom expiry. One that follows the membership is
     /// already the `Membership` row, so it is never listed twice.
     Discipline,
@@ -125,13 +126,36 @@ pub fn expiries_list(
 /// sort by, and it is a more urgent problem than one expiring next month.
 #[tauri::command]
 pub fn certificates_missing(state: State<AppState>) -> Result<Vec<Expiry>> {
-    let conn = state.db();
-    let mut stmt = conn.prepare(
+    missing(
+        &state.db(),
+        "cert_through IS NULL",
+        ExpiryKind::CertificateMissing,
+    )
+}
+
+/// Members for whom no ID document was ever added. Dateless, like
+/// `certificates_missing`, and listed the same way.
+#[tauri::command]
+pub fn id_documents_missing(state: State<AppState>) -> Result<Vec<Expiry>> {
+    id_documents_missing_in(&state.db())
+}
+
+fn id_documents_missing_in(conn: &rusqlite::Connection) -> Result<Vec<Expiry>> {
+    missing(
+        conn,
+        super::members::ID_DOC_MISSING,
+        ExpiryKind::IdDocumentMissing,
+    )
+}
+
+/// One row per member matching `clause`, with no date to sort by.
+fn missing(conn: &rusqlite::Connection, clause: &str, kind: ExpiryKind) -> Result<Vec<Expiry>> {
+    let mut stmt = conn.prepare(&format!(
         "SELECT id, first_name, last_name, phone
            FROM member_status
-          WHERE cert_through IS NULL
-          ORDER BY last_name COLLATE NOCASE, first_name COLLATE NOCASE",
-    )?;
+          WHERE {clause}
+          ORDER BY last_name COLLATE NOCASE, first_name COLLATE NOCASE"
+    ))?;
 
     let rows = stmt.query_map(params![], |r| {
         Ok(Expiry {
@@ -139,7 +163,7 @@ pub fn certificates_missing(state: State<AppState>) -> Result<Vec<Expiry>> {
             first_name: r.get(1)?,
             last_name: r.get(2)?,
             phone: r.get(3)?,
-            kind: ExpiryKind::CertificateMissing,
+            kind,
             date: String::new(),
             days_left: 0,
             label: None,
@@ -166,6 +190,21 @@ mod tests {
             .as_str()
             .unwrap()
             .to_string()
+    }
+
+    #[test]
+    fn id_documents_missing_lists_only_members_without_one() {
+        let conn = db::open_in_memory().unwrap();
+        conn.execute_batch(
+            "INSERT INTO member (id, first_name, last_name) VALUES
+               (1, 'Ada', 'Lovelace'), (2, 'Alan', 'Turing');
+             INSERT INTO document (member_id, kind) VALUES (1, 'id_card');",
+        )
+        .unwrap();
+        let rows = super::id_documents_missing_in(&conn).unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].member_id, 2);
+        assert_eq!(rows[0].kind, ExpiryKind::IdDocumentMissing);
     }
 
     /// The UNION ALL query is the kind that breaks silently when a column is

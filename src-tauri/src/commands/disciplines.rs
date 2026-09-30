@@ -2,7 +2,7 @@
 //!
 //! A discipline with no `expires_on` follows the membership, so there is no
 //! date to keep in step on renewal: `through` is resolved at read time from
-//! the live memberships. See migration 0004 and DECISIONS 23.
+//! the live memberships. See migration 0006 and DECISIONS 23.
 
 use rusqlite::{params, Connection};
 use tauri::State;

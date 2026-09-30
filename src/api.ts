@@ -114,6 +114,8 @@ export const api = {
     /** null when the payment-method feature is off — see src/features.ts. */
     paymentMethod: PaymentMethod | null;
     note: string;
+    /** null keeps the backend's one-month end; a date is the operator's choice. */
+    endsOn: string | null;
   }) => call<Membership>("membership_renew", args),
   membershipVoid: (id: number, reason: string) => call<null>("membership_void", { id, reason }),
 
@@ -132,6 +134,7 @@ export const api = {
   expiriesList: (days: number, overdueDays: number) =>
     call<Expiry[]>("expiries_list", { days, overdueDays }),
   certificatesMissing: () => call<Expiry[]>("certificates_missing"),
+  idDocumentsMissing: () => call<Expiry[]>("id_documents_missing"),
 
   entryCheck: (memberId: number) => call<EntryCheck>("entry_check", { memberId }),
   checkinCreate: (memberId: number, overrideReason: string | null) =>
