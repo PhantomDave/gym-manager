@@ -109,6 +109,8 @@ pub fn member_get(state: State<AppState>, id: i64) -> Result<MemberDetail> {
         .query_map([id], map_document)?
         .collect::<std::result::Result<Vec<_>, _>>()?;
 
+    let disciplines = super::disciplines::list(&conn, id)?;
+
     let (paid_through, cert_through, has_id_document) = conn.query_row(
         "SELECT paid_through, cert_through, has_id_document FROM member_status WHERE id = ?1",
         [id],
@@ -119,20 +121,32 @@ pub fn member_get(state: State<AppState>, id: i64) -> Result<MemberDetail> {
         member,
         memberships,
         documents,
+        disciplines,
         paid_through,
         cert_through,
         has_id_document,
     })
 }
 
+/// Create a member together with the disciplines chosen on the form, in one
+/// transaction: a rejected discipline must not leave a half-created person.
 #[tauri::command]
-pub fn member_create(state: State<AppState>, input: MemberInput) -> Result<i64> {
+pub fn member_create(
+    state: State<AppState>,
+    input: MemberInput,
+    disciplines: Vec<DisciplineInput>,
+) -> Result<i64> {
     let conn = state.db();
+    create(&conn, input, disciplines)
+}
+
+fn create(conn: &Connection, input: MemberInput, disciplines: Vec<DisciplineInput>) -> Result<i64> {
     let (first, last) = validate_name(&input)?;
     let birth_date = optional_date(input.birth_date, "birth_date")?;
     let card_expires_on = optional_date(input.card_expires_on, "card_expires_on")?;
 
-    conn.execute(
+    let tx = conn.unchecked_transaction()?;
+    tx.execute(
         "INSERT INTO member (first_name, last_name, national_id, birth_date, phone,
                              email, emergency_contact, emergency_phone, notes,
                              teachers, card_number, card_expires_on)
@@ -154,7 +168,12 @@ pub fn member_create(state: State<AppState>, input: MemberInput) -> Result<i64> 
     )
     .map_err(duplicate_id_hint)?;
 
-    Ok(conn.last_insert_rowid())
+    let id = tx.last_insert_rowid();
+    for discipline in disciplines {
+        super::disciplines::insert(&tx, id, discipline)?;
+    }
+    tx.commit()?;
+    Ok(id)
 }
 
 #[tauri::command]
@@ -323,6 +342,55 @@ pub(crate) fn map_document(r: &rusqlite::Row) -> rusqlite::Result<Document> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::db;
+
+    fn named(first: &str) -> MemberInput {
+        MemberInput {
+            first_name: first.into(),
+            last_name: "Lovelace".into(),
+            ..Default::default()
+        }
+    }
+
+    fn discipline(name: &str) -> DisciplineInput {
+        DisciplineInput {
+            name: name.into(),
+            expires_on: None,
+        }
+    }
+
+    #[test]
+    fn create_stores_the_disciplines_from_the_form() {
+        let conn = db::open_in_memory().unwrap();
+        let id = create(
+            &conn,
+            named("Ada"),
+            vec![discipline("Boxe"), discipline("Yoga")],
+        )
+        .unwrap();
+        let names: Vec<String> = super::super::disciplines::list(&conn, id)
+            .unwrap()
+            .into_iter()
+            .map(|d| d.name)
+            .collect();
+        assert_eq!(names, ["Boxe", "Yoga"]);
+    }
+
+    #[test]
+    fn a_rejected_discipline_creates_no_member() {
+        let conn = db::open_in_memory().unwrap();
+        let err = create(
+            &conn,
+            named("Ada"),
+            vec![discipline("Boxe"), discipline("BOXE")],
+        )
+        .unwrap_err();
+        assert_eq!(err.code, "discipline.duplicate");
+        let n: i64 = conn
+            .query_row("SELECT count(*) FROM member", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(n, 0);
+    }
 
     /// The new columns sit between `notes` and `joined_on` in the SELECT, so a
     /// shifted index would put the expiry in the card number without any error.

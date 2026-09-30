@@ -467,6 +467,7 @@ select {
 .drawer-head h2 { margin: 0 0 var(--space-2); }
 .drawer-body { overflow-y: auto; padding: var(--space-4) var(--space-5) var(--space-6); }
 .drawer-section { margin-bottom: var(--space-5); }
+.section-action { margin-top: var(--space-2); }
 .drawer-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-5); }
 
 .kv { display: grid; grid-template-columns: 190px 1fr; gap: var(--space-2) var(--space-3); font-size: 16px; }
@@ -509,6 +510,18 @@ select {
 @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
 
 .field { min-width: 0; }
+
+/* A group of repeatable entries under the main grid, e.g. disciplines. */
+.form-block { border: 0; margin: var(--space-5) 0 0; padding: 0; }
+.form-block > .btn { margin-top: var(--space-2); }
+.inline-entry { display: flex; align-items: flex-end; gap: var(--space-2); margin-bottom: var(--space-3); }
+.inline-entry .field { flex: 1; }
+.discipline-entry {
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-3);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-lg);
+}
 .field label,
 .field-label {
   display: block;

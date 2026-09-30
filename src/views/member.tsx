@@ -11,20 +11,28 @@ import { FEATURES } from "../features.js";
 import { Badges, Empty, Section } from "../components/ui.js";
 import {
   ConfirmDialog,
+  DisciplineDialog,
   DocumentDialog,
   MemberFormDialog,
   ReasonDialog,
   RenewDialog,
 } from "../components/dialogs.js";
-import { documentTone, statusOf } from "../lib/status.js";
+import { disciplineBadge, documentTone, statusOf } from "../lib/status.js";
 import { daysUntil, fmtBytes, fmtDate, fmtMoney } from "../lib/format.js";
-import type { Document, MemberDetail, RenewalPreview, StatusSettings } from "../types.js";
+import type {
+  Discipline,
+  Document,
+  MemberDetail,
+  RenewalPreview,
+  StatusSettings,
+} from "../types.js";
 
 type DialogState =
   | { kind: "edit" }
   | { kind: "renew"; preview: RenewalPreview }
   | { kind: "cert" }
   | { kind: "doc" }
+  | { kind: "discipline"; discipline?: Discipline }
   | { kind: "void"; id: number }
   | { kind: "archive" }
   | null;
@@ -72,7 +80,7 @@ export function MemberDrawer({
     );
   }
 
-  const { member, memberships, documents } = detail;
+  const { member, memberships, documents, disciplines } = detail;
   const certificates = documents.filter((d) => d.kind === "health_cert");
   const others = documents.filter((d) => d.kind !== "health_cert");
 
@@ -125,6 +133,49 @@ export function MemberDrawer({
           ) : (
             <div class="callout blocked">{t("member.no_certificate")}</div>
           )}
+        </Section>
+
+        <Section title={t("member.disciplines")}>
+          {disciplines.length > 0 ? (
+            <div class="list">
+              {disciplines.map((d) => {
+                const badge = disciplineBadge(d.through, settings);
+                return (
+                  <div key={d.id} class="row">
+                    <div class="grow">
+                      <div class="name">{d.name}</div>
+                      <div class="sub">
+                        {d.expiresOn ? t("discipline.custom") : t("discipline.follows")}
+                      </div>
+                    </div>
+                    <span class={`badge ${badge.tone}`}>{badge.text}</span>
+                    <button
+                      class="btn btn-sm"
+                      aria-label={t("discipline.edit_named", { name: d.name })}
+                      onClick={() => setDialog({ kind: "discipline", discipline: d })}
+                    >
+                      {t("discipline.edit")}
+                    </button>
+                    <button
+                      class="btn btn-ghost btn-sm btn-danger"
+                      aria-label={t("discipline.remove_named", { name: d.name })}
+                      onClick={async () => {
+                        await api.disciplineRemove(d.id);
+                        after(t("discipline.removed"));
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <Empty>{t("member.no_disciplines")}</Empty>
+          )}
+          <button class="btn btn-sm section-action" onClick={() => setDialog({ kind: "discipline" })}>
+            {t("discipline.add")}
+          </button>
         </Section>
 
         <Section title={t("member.details")}>
@@ -228,6 +279,15 @@ export function MemberDrawer({
         <DocumentDialog
           memberId={memberId}
           isCert={dialog.kind === "cert"}
+          onClose={() => setDialog(null)}
+          onDone={after}
+        />
+      )}
+
+      {dialog?.kind === "discipline" && (
+        <DisciplineDialog
+          memberId={memberId}
+          discipline={dialog.discipline}
           onClose={() => setDialog(null)}
           onDone={after}
         />

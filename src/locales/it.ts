@@ -79,6 +79,30 @@ const it = {
   "member.edit": "Modifica dati",
   "member.archive": "Togli dagli iscritti",
 
+  // Disciplines ------------------------------------------------------------
+  "member.disciplines": "Discipline",
+  "member.no_disciplines": "Nessuna disciplina.",
+  "discipline.add": "Aggiungi disciplina",
+  "discipline.edit": "Modifica",
+  "discipline.remove": "Rimuovi",
+  "discipline.edit_named": "Modifica {name}",
+  "discipline.remove_named": "Rimuovi {name}",
+  "discipline.no_membership": "Nessun abbonamento",
+  "discipline.follows": "scade con l'abbonamento",
+  "discipline.custom": "scadenza personalizzata",
+  "discipline.title_add": "Aggiungi una disciplina",
+  "discipline.title_edit": "Modifica {name}",
+  "discipline.name": "Disciplina",
+  "discipline.name_placeholder": "es. Boxe, Pilates",
+  "discipline.expires_on": "Scadenza personalizzata",
+  "discipline.expires_hint": "Lascia vuoto per farla scadere insieme all'abbonamento.",
+  "discipline.follow_membership": "Fai scadere con l'abbonamento",
+  "discipline.form_hint":
+    "Senza una scadenza personalizzata, ogni disciplina scade insieme all'abbonamento.",
+  "discipline.added": "Disciplina aggiunta.",
+  "discipline.saved": "Disciplina salvata.",
+  "discipline.removed": "Disciplina rimossa.",
+
   "field.first_name": "Nome",
   "field.last_name": "Cognome",
   "field.national_id": "Codice fiscale",
@@ -152,6 +176,7 @@ const it = {
   "expiries.subtitle": "Chi va richiamato, in ordine di urgenza.",
   "expiries.memberships": "Abbonamento",
   "expiries.certificates": "Certificato medico",
+  "expiries.discipline": "Disciplina: {name}",
   "expiries.window": "Mostra fino a",
   "expiries.window_7": "7 giorni",
   "expiries.window_30": "30 giorni",
@@ -174,6 +199,8 @@ const it = {
   "form.card_expiry_hint": "Di solito il 31 dicembre, ma puoi scegliere un'altra data.",
   // Shown under a field left empty after trying to submit.
   "form.field_required": "Questo campo è obbligatorio.",
+  // Shown under a date whose day, month or year is still unset.
+  "form.date_incomplete": "Completa la data, oppure lasciala tutta vuota.",
 
   "archive.title": "Togliere {name} dagli iscritti?",
   "archive.hint":
@@ -262,6 +289,9 @@ const it = {
   "err.member.not_found": "Questa persona non è più fra gli iscritti.",
   "err.member.name_required": "Servono sia il nome sia il cognome.",
   "err.member.duplicate_national_id": "C'è già un iscritto con questo codice fiscale.",
+  "err.discipline.not_found": "Questa disciplina non esiste più.",
+  "err.discipline.name_required": "Scrivi il nome della disciplina.",
+  "err.discipline.duplicate": "{name} è già fra le discipline di questa persona.",
   "err.membership.not_found": "Il pagamento non esiste più o è già stato annullato.",
   "err.membership.overlap": "Questo periodo si sovrappone a un mese già pagato.",
   "err.membership.negative_price": "La quota non può essere negativa.",

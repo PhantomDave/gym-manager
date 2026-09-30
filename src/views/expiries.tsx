@@ -1,8 +1,9 @@
 // The call list.
 //
-// Memberships and certificates arrive as one stream sorted by date, split into
-// what has already lapsed and what is coming. Overdue leads, because that is
-// the actual work; upcoming is only the warning.
+// Memberships, certificates and custom discipline expiries arrive as one
+// stream sorted by date, split into what has already lapsed and what is
+// coming. Overdue leads, because that is the actual work; upcoming is only the
+// warning.
 
 import { useEffect, useState } from "preact/hooks";
 import { t, type MessageKey } from "../i18n.js";
@@ -13,7 +14,8 @@ import type { Expiry, Tone } from "../types.js";
 
 const WINDOWS = [7, 30, 90] as const;
 
-const KIND_LABEL: Record<Expiry["kind"], MessageKey> = {
+/** Every kind but `discipline`, whose label carries the discipline's name. */
+const KIND_LABEL: Record<Exclude<Expiry["kind"], "discipline">, MessageKey> = {
   membership: "expiries.memberships",
   certificate: "expiries.certificates",
   certificate_missing: "expiries.certificates",
@@ -101,6 +103,12 @@ export function ExpiriesView({
   );
 }
 
+function kindLabel(r: Expiry): string {
+  return r.kind === "discipline"
+    ? t("expiries.discipline", { name: r.label ?? "" })
+    : t(KIND_LABEL[r.kind]);
+}
+
 function Group({
   title,
   rows,
@@ -123,7 +131,7 @@ function Group({
         <div class="list">
           {rows.map((r) => (
             <button
-              key={`${r.kind}-${r.memberId}`}
+              key={`${r.kind}-${r.memberId}-${r.label ?? ""}`}
               class="row row-button"
               onClick={() => onOpenMember(r.memberId)}
             >
@@ -132,7 +140,7 @@ function Group({
                   {r.lastName}, {r.firstName}
                 </div>
                 <div class="sub">
-                  {t(KIND_LABEL[r.kind])}
+                  {kindLabel(r)}
                   {!dateless && ` · ${fmtDate(r.date)}`}
                 </div>
               </div>

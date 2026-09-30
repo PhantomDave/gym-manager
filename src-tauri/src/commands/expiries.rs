@@ -22,6 +22,9 @@ pub enum ExpiryKind {
     Certificate,
     CertificateMissing,
     IdDocumentMissing,
+    /// A discipline with a custom expiry. One that follows the membership is
+    /// already the `Membership` row, so it is never listed twice.
+    Discipline,
 }
 sql_via_serde!(ExpiryKind);
 
@@ -37,7 +40,22 @@ pub struct Expiry {
     pub date: String,
     /// Negative once the date has passed.
     pub days_left: i64,
+    /// The discipline's name for `Discipline`; `None` for the other kinds.
+    pub label: Option<String>,
 }
+
+/// Custom discipline expiries as `(member_id, name, date)` rows, read from
+/// `member_status` so archived members drop out the same way they do above.
+/// Shared with the test, so the branch it checks is the one that ships.
+const DISCIPLINE_EXPIRIES: &str = "
+         SELECT s.id, s.first_name, s.last_name, s.phone, 'discipline' AS kind,
+                d.expires_on AS date,
+                CAST(julianday(d.expires_on) - julianday(:today) AS INTEGER) AS days_left,
+                d.name AS label
+           FROM member_discipline d JOIN member_status s ON s.id = d.member_id
+          WHERE d.removed_at IS NULL AND d.expires_on IS NOT NULL
+            AND d.expires_on >= date(:today, '-' || :overdue || ' days')
+            AND d.expires_on <= date(:today, '+' || :days || ' days')";
 
 /// Everything expiring between `overdue_days` ago and `days` from now.
 ///
@@ -55,10 +73,11 @@ pub fn expiries_list(
     let overdue = overdue_days.unwrap_or(60);
     let today = today().to_string();
 
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare(&format!(
         "SELECT id, first_name, last_name, phone, 'membership' AS kind,
                 paid_through AS date,
-                CAST(julianday(paid_through) - julianday(:today) AS INTEGER) AS days_left
+                CAST(julianday(paid_through) - julianday(:today) AS INTEGER) AS days_left,
+                NULL AS label
            FROM member_status
           WHERE paid_through IS NOT NULL
             AND paid_through >= date(:today, '-' || :overdue || ' days')
@@ -68,14 +87,18 @@ pub fn expiries_list(
 
          SELECT id, first_name, last_name, phone, 'certificate' AS kind,
                 cert_through AS date,
-                CAST(julianday(cert_through) - julianday(:today) AS INTEGER) AS days_left
+                CAST(julianday(cert_through) - julianday(:today) AS INTEGER) AS days_left,
+                NULL AS label
            FROM member_status
           WHERE cert_through IS NOT NULL
             AND cert_through >= date(:today, '-' || :overdue || ' days')
             AND cert_through <= date(:today, '+' || :days || ' days')
 
-          ORDER BY date ASC, last_name COLLATE NOCASE",
-    )?;
+         UNION ALL
+         {DISCIPLINE_EXPIRIES}
+
+          ORDER BY date ASC, last_name COLLATE NOCASE"
+    ))?;
 
     let rows = stmt.query_map(
         rusqlite::named_params! { ":today": today, ":days": days, ":overdue": overdue },
@@ -88,6 +111,7 @@ pub fn expiries_list(
                 kind: r.get(4)?,
                 date: r.get(5)?,
                 days_left: r.get(6)?,
+                label: r.get(7)?,
             })
         },
     )?;
@@ -142,6 +166,7 @@ fn missing(conn: &rusqlite::Connection, clause: &str, kind: ExpiryKind) -> Resul
             kind,
             date: String::new(),
             days_left: 0,
+            label: None,
         })
     })?;
 
@@ -151,7 +176,7 @@ fn missing(conn: &rusqlite::Connection, clause: &str, kind: ExpiryKind) -> Resul
 
 #[cfg(test)]
 mod tests {
-    use super::ExpiryKind;
+    use super::{ExpiryKind, DISCIPLINE_EXPIRIES};
     use crate::db;
 
     /// The SQL literals `'membership'`/`'certificate'` below have to agree
@@ -229,5 +254,44 @@ mod tests {
         assert_eq!(rows[0].1, -3);
         assert_eq!(rows[1].0, kind_str(ExpiryKind::Membership));
         assert_eq!(rows[1].1, 5);
+    }
+
+    /// Only custom dates are listed, removed and archived ones are not, and
+    /// the window bounds apply.
+    #[test]
+    fn discipline_expiries_list_custom_dates_only() {
+        let conn = db::open_in_memory().unwrap();
+        conn.execute_batch(
+            "INSERT INTO member (id, first_name, last_name) VALUES (1, 'Ada', 'Lovelace');
+             INSERT INTO member (id, first_name, last_name, archived_at)
+               VALUES (2, 'Old', 'Timer', '2026-01-01 10:00:00');
+             INSERT INTO membership (member_id, starts_on, ends_on, price_cents)
+               VALUES (1, date('now','localtime'), date('now','localtime','+5 days'), 3000);
+             INSERT INTO member_discipline (member_id, name, expires_on) VALUES
+               (1, 'Follows', NULL),
+               (1, 'Pilates', date('now','localtime','+3 days')),
+               (1, 'Far', date('now','localtime','+400 days')),
+               (2, 'Archived', date('now','localtime','+3 days'));
+             INSERT INTO member_discipline (member_id, name, expires_on, removed_at)
+               VALUES (1, 'Gone', date('now','localtime','+3 days'), '2026-01-01 10:00:00');",
+        )
+        .unwrap();
+
+        let mut stmt = conn.prepare(DISCIPLINE_EXPIRIES).unwrap();
+        let rows: Vec<(String, String, i64)> = stmt
+            .query_map(
+                rusqlite::named_params! {
+                    ":today": super::super::today().to_string(), ":days": 30, ":overdue": 60,
+                },
+                |r| Ok((r.get(4)?, r.get(7)?, r.get(6)?)),
+            )
+            .unwrap()
+            .map(|r| r.unwrap())
+            .collect();
+
+        assert_eq!(
+            rows,
+            [(kind_str(ExpiryKind::Discipline), "Pilates".into(), 3)]
+        );
     }
 }

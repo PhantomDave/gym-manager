@@ -4,7 +4,7 @@
 // A failed confirm keeps the dialog open. The toast already carries the reason,
 // and closing would make the operator retype a whole form to fix one field.
 
-import { useState } from "preact/hooks";
+import { useRef, useState } from "preact/hooks";
 import { t } from "../i18n.js";
 import { FEATURES } from "../features.js";
 import { api, pickDocument } from "../api.js";
@@ -13,6 +13,7 @@ import { DateField } from "./DateField.js";
 import { Field, Select } from "./ui.js";
 import { centsToEuros, eurosToCents, fmtDate, today } from "../lib/format.js";
 import type {
+  Discipline,
   DocumentKind,
   Member,
   MemberInput,
@@ -64,6 +65,18 @@ function toInput(member: Member): MemberFormValues {
   };
 }
 
+/** One discipline row on the new-member form. */
+interface DisciplineEntry {
+  key: number;
+  name: string;
+  /** "" means it follows the membership. */
+  expiresOn: string;
+  /** Some of the date's selects are set but not all; see DateField. */
+  partial: boolean;
+  nameError?: string;
+  dateError?: string;
+}
+
 /** Create or edit a member. One form for both — only the verb changes. */
 export function MemberFormDialog({
   member,
@@ -79,6 +92,16 @@ export function MemberFormDialog({
     editing ? toInput(member) : emptyMember(),
   );
   const [errors, setErrors] = useState<{ firstName?: string; lastName?: string }>({});
+  // Each entry carries a stable key: a DateField keeps its own half-picked
+  // selects, and index keys would hand them to the next row on removal.
+  const [disciplines, setDisciplines] = useState<DisciplineEntry[]>([]);
+  const nextKey = useRef(0);
+  const editDiscipline = (key: number, patch: Partial<DisciplineEntry>) =>
+    setDisciplines((ds) =>
+      ds.map((d) =>
+        d.key === key ? { ...d, ...patch, nameError: undefined, dateError: undefined } : d,
+      ),
+    );
   const [busy, setBusy] = useState(false);
 
   const set =
@@ -102,7 +125,18 @@ export function MemberFormDialog({
     const nextErrors: typeof errors = {};
     if (!form.firstName.trim()) nextErrors.firstName = t("form.field_required");
     if (!form.lastName.trim()) nextErrors.lastName = t("form.field_required");
-    if (nextErrors.firstName || nextErrors.lastName) {
+    // A half-picked date would reach Rust as "" and silently mean "follows
+    // the membership"; a date with no name is a half-filled row. Neither is
+    // dropped in silence.
+    const checked = disciplines.map((d) => ({
+      ...d,
+      nameError:
+        !d.name.trim() && (d.expiresOn || d.partial) ? t("form.field_required") : undefined,
+      dateError: d.partial ? t("form.date_incomplete") : undefined,
+    }));
+    const disciplineError = checked.some((d) => d.nameError || d.dateError);
+    if (disciplineError) setDisciplines(checked);
+    if (nextErrors.firstName || nextErrors.lastName || disciplineError) {
       setErrors(nextErrors);
       return;
     }
@@ -113,7 +147,10 @@ export function MemberFormDialog({
         await api.memberUpdate(member.id, form);
         onDone(member.id, t("form.saved"));
       } else {
-        onDone(await api.memberCreate(form), t("form.created"));
+        const chosen = disciplines
+          .filter((d) => d.name.trim())
+          .map((d) => ({ name: d.name, expiresOn: d.expiresOn || null }));
+        onDone(await api.memberCreate(form, chosen), t("form.created"));
       }
     } catch {
       setBusy(false);
@@ -161,6 +198,39 @@ export function MemberFormDialog({
         <Field id="f-notes" label={t("field.notes")} full
           value={form.notes} onInput={set("notes")} />
       </div>
+
+      {!editing && (
+        <fieldset class="form-block">
+          <legend class="field-label">{t("member.disciplines")}</legend>
+          {disciplines.map((d, i) => (
+            <div key={d.key} class="discipline-entry">
+              <div class="inline-entry">
+                <Field id={`f-disc-${d.key}`} label={`${t("discipline.name")} ${i + 1}`}
+                  placeholder={t("discipline.name_placeholder")} value={d.name} error={d.nameError}
+                  onInput={(v) => editDiscipline(d.key, { name: v })} />
+                <button type="button" class="btn btn-ghost btn-icon btn-danger"
+                  aria-label={t("discipline.remove")}
+                  onClick={() => setDisciplines((ds) => ds.filter((x) => x.key !== d.key))}>
+                  ✕
+                </button>
+              </div>
+              <DateField id={`f-disc-exp-${d.key}`} label={t("discipline.expires_on")}
+                value={d.expiresOn} hint={t("discipline.expires_hint")} error={d.dateError}
+                onInput={(v) => editDiscipline(d.key, { expiresOn: v })}
+                onPartial={(partial) => editDiscipline(d.key, { partial })}
+                from={thisYear - 1} to={thisYear + 5} />
+            </div>
+          ))}
+          <button type="button" class="btn"
+            onClick={() => {
+              const key = nextKey.current++;
+              setDisciplines((ds) => [...ds, { key, name: "", expiresOn: "", partial: false }]);
+            }}>
+            {t("discipline.add")}
+          </button>
+          <div class="hint">{t("discipline.form_hint")}</div>
+        </fieldset>
+      )}
     </Dialog>
   );
 }
@@ -264,6 +334,90 @@ export function RenewDialog({
         )}
         <Field id="p-note" label={t("field.note")} full={!FEATURES.payments} value={note}
           onInput={setNote} />
+      </div>
+    </Dialog>
+  );
+}
+
+/**
+ * Add a discipline, or edit one. An empty expiry means it follows the
+ * membership; the button under a set date clears it back to that.
+ */
+export function DisciplineDialog({
+  memberId,
+  discipline,
+  onClose,
+  onDone,
+}: {
+  memberId: number;
+  discipline?: Discipline;
+  onClose: () => void;
+  onDone: (message: string) => void;
+}) {
+  const editing = discipline !== undefined;
+  const [name, setName] = useState(discipline?.name ?? "");
+  const [expiresOn, setExpiresOn] = useState(discipline?.expiresOn ?? "");
+  const [partial, setPartial] = useState(false);
+  const [nameError, setNameError] = useState<string | undefined>(undefined);
+  const [dateError, setDateError] = useState<string | undefined>(undefined);
+  // Remounting the DateField is the one way to clear selects that are only
+  // half set: their value is already "", so setting "" again changes nothing.
+  const [dateKey, setDateKey] = useState(0);
+  const [busy, setBusy] = useState(false);
+
+  const followMembership = () => {
+    setExpiresOn("");
+    setPartial(false);
+    setDateError(undefined);
+    setDateKey((k) => k + 1);
+  };
+
+  const confirm = async () => {
+    if (!name.trim()) setNameError(t("form.field_required"));
+    if (partial) setDateError(t("form.date_incomplete"));
+    if (!name.trim() || partial) return;
+    setBusy(true);
+    const input = { name, expiresOn: expiresOn || null };
+    try {
+      if (editing) {
+        await api.disciplineUpdate(discipline.id, input);
+        onDone(t("discipline.saved"));
+      } else {
+        await api.disciplineAdd(memberId, input);
+        onDone(t("discipline.added"));
+      }
+    } catch {
+      setBusy(false);
+    }
+  };
+
+  const thisYear = new Date().getFullYear();
+  // An expiry already on file keeps its own year selectable, however old.
+  const fromYear = Math.min(thisYear - 1, Number(discipline?.expiresOn?.slice(0, 4)) || thisYear);
+
+  return (
+    <Dialog
+      title={editing ? t("discipline.title_edit", { name: discipline.name }) : t("discipline.title_add")}
+      confirmText={editing ? t("form.save") : t("discipline.add")}
+      onConfirm={confirm}
+      onCancel={onClose}
+      busy={busy}
+    >
+      <div class="form-grid">
+        <Field id="disc-name" label={t("discipline.name")} required full autoFocus
+          placeholder={t("discipline.name_placeholder")} value={name} error={nameError}
+          onInput={(v) => { setName(v); setNameError(undefined); }} />
+        <DateField key={dateKey} id="disc-expires" label={t("discipline.expires_on")}
+          value={expiresOn} hint={t("discipline.expires_hint")} error={dateError}
+          onInput={(v) => { setExpiresOn(v); setDateError(undefined); }}
+          onPartial={setPartial} from={fromYear} to={thisYear + 5} />
+        {(expiresOn || partial) && (
+          <div class="full">
+            <button type="button" class="btn btn-sm" onClick={followMembership}>
+              {t("discipline.follow_membership")}
+            </button>
+          </div>
+        )}
       </div>
     </Dialog>
   );

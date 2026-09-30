@@ -7,6 +7,7 @@
 
 pub mod app;
 pub mod checkins;
+pub mod disciplines;
 pub mod documents;
 pub mod expiries;
 pub mod members;

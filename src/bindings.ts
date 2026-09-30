@@ -48,7 +48,23 @@ export type DocumentInput = { memberId: number, kind: DocumentKind,
  */
 sourcePath: string | null, title: string | null, issuer: string | null, issuedOn: string | null, expiresOn: string | null, };
 
-export type MemberDetail = { member: Member, memberships: Array<Membership>, documents: Array<Document>, paidThrough: string | null, certThrough: string | null, hasIdDocument: boolean, };
+export type Discipline = { id: number, memberId: number, name: string, 
+/**
+ * Custom expiry, or `None` when the discipline follows the membership.
+ */
+expiresOn: string | null, 
+/**
+ * Effective expiry; `None` only when following a member never enrolled.
+ */
+through: string | null, };
+
+export type DisciplineInput = { name: string, 
+/**
+ * `None` (or blank) makes the discipline follow the membership.
+ */
+expiresOn: string | null, };
+
+export type MemberDetail = { member: Member, memberships: Array<Membership>, documents: Array<Document>, disciplines: Array<Discipline>, paidThrough: string | null, certThrough: string | null, hasIdDocument: boolean, };
 
 export type Checkin = { id: number, memberId: number, at: string, membershipId: number | null, overrideReason: string | null, };
 
@@ -80,13 +96,17 @@ export type Dashboard = { gymName: string, currency: string, today: string, acti
 
 export type ExpiringDocument = { id: number, memberId: number, firstName: string, lastName: string, kind: DocumentKind, expiresOn: string, };
 
-export type ExpiryKind = "membership" | "certificate" | "certificate_missing" | "id_document_missing";
+export type ExpiryKind = "membership" | "certificate" | "certificate_missing" | "id_document_missing" | "discipline";
 
 export type Expiry = { memberId: number, firstName: string, lastName: string, phone: string | null, kind: ExpiryKind, date: string, 
 /**
  * Negative once the date has passed.
  */
-daysLeft: number, };
+daysLeft: number, 
+/**
+ * The discipline's name for `Discipline`; `None` for the other kinds.
+ */
+label: string | null, };
 
 export type Reason = { code: string, params: { [key in string]: string }, };
 
