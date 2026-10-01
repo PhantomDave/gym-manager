@@ -63,6 +63,12 @@ const en: Record<CatalogueKey, string> = {
   "member.edit": "Edit details",
   "member.archive": "Remove from the roster",
 
+  "entries.left": "Entries left",
+  "entries.take": "Take one entry",
+  "entries.give": "Add one entry",
+  "entries.none": "No entries left",
+  "entries.owed": "Owes {count}",
+
   "member.disciplines": "Disciplines",
   "member.no_disciplines": "No disciplines.",
   "discipline.add": "Add discipline",
@@ -243,6 +249,7 @@ const en: Record<CatalogueKey, string> = {
   "err.member.not_found": "This person is no longer on the roster.",
   "err.member.name_required": "Both the first name and the surname are needed.",
   "err.member.duplicate_national_id": "Another member already has this ID number.",
+  "err.member.entries_step": "Entries change one at a time.",
   "err.discipline.not_found": "That discipline no longer exists.",
   "err.discipline.name_required": "Enter the discipline's name.",
   "err.discipline.duplicate": "{name} is already one of this person's disciplines.",

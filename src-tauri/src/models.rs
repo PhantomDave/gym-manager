@@ -77,6 +77,8 @@ pub struct Member {
     /// When the association card lapses. The form proposes 31 December.
     pub card_expires_on: Option<String>,
     pub joined_on: String,
+    /// Entries left, counted down by hand. Negative: owed. See DECISIONS 24.
+    pub entries_left: i64,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -95,6 +97,8 @@ pub struct MemberInput {
     pub teachers: Option<String>,
     pub card_number: Option<String>,
     pub card_expires_on: Option<String>,
+    /// `None` on create takes the column default (10); on edit, keeps the count.
+    pub entries_left: Option<i64>,
 }
 
 /// How a renewal was paid. `Membership.payment_method` is `None` while

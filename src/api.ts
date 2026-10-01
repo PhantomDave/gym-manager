@@ -103,6 +103,8 @@ export const api = {
     call<number>("member_create", { input, disciplines }),
   memberUpdate: (id: number, input: MemberInput) => call<null>("member_update", { id, input }),
   memberArchive: (id: number) => call<null>("member_archive", { id }),
+  memberEntriesAdjust: (id: number, delta: 1 | -1) =>
+    call<number>("member_entries_adjust", { id, delta }),
 
   membershipPreview: (memberId: number) =>
     call<RenewalPreview>("membership_preview", { memberId }),

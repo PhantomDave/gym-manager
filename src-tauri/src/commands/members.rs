@@ -169,6 +169,13 @@ fn create(conn: &Connection, input: MemberInput, disciplines: Vec<DisciplineInpu
     .map_err(duplicate_id_hint)?;
 
     let id = tx.last_insert_rowid();
+    // Left out of the INSERT so `None` takes the column default.
+    if let Some(n) = input.entries_left {
+        tx.execute(
+            "UPDATE member SET entries_left = ?2 WHERE id = ?1",
+            params![id, n],
+        )?;
+    }
     for discipline in disciplines {
         super::disciplines::insert(&tx, id, discipline)?;
     }
@@ -178,7 +185,10 @@ fn create(conn: &Connection, input: MemberInput, disciplines: Vec<DisciplineInpu
 
 #[tauri::command]
 pub fn member_update(state: State<AppState>, id: i64, input: MemberInput) -> Result<()> {
-    let conn = state.db();
+    update(&state.db(), id, input)
+}
+
+fn update(conn: &Connection, id: i64, input: MemberInput) -> Result<()> {
     let (first, last) = validate_name(&input)?;
     let birth_date = optional_date(input.birth_date, "birth_date")?;
     let card_expires_on = optional_date(input.card_expires_on, "card_expires_on")?;
@@ -188,7 +198,8 @@ pub fn member_update(state: State<AppState>, id: i64, input: MemberInput) -> Res
             "UPDATE member SET first_name = ?2, last_name = ?3, national_id = ?4,
                     birth_date = ?5, phone = ?6, email = ?7, emergency_contact = ?8,
                     emergency_phone = ?9, notes = ?10, teachers = ?11,
-                    card_number = ?12, card_expires_on = ?13
+                    card_number = ?12, card_expires_on = ?13,
+                    entries_left = coalesce(?14, entries_left)
               WHERE id = ?1 AND archived_at IS NULL",
             params![
                 id,
@@ -204,6 +215,7 @@ pub fn member_update(state: State<AppState>, id: i64, input: MemberInput) -> Res
                 blank_to_none(input.teachers),
                 blank_to_none(input.card_number),
                 card_expires_on,
+                input.entries_left,
             ],
         )
         .map_err(duplicate_id_hint)?;
@@ -212,6 +224,36 @@ pub fn member_update(state: State<AppState>, id: i64, input: MemberInput) -> Res
         return Err(AppError::new("member.not_found", "member does not exist").with("id", id));
     }
     Ok(())
+}
+
+/// One entry in (−1) or back (+1). The arithmetic happens in SQL, so a card
+/// that has been open a while cannot write back a stale count. Returns the new
+/// count; it may go negative (DECISIONS 24).
+#[tauri::command]
+pub fn member_entries_adjust(state: State<AppState>, id: i64, delta: i64) -> Result<i64> {
+    adjust_entries(&state.db(), id, delta)
+}
+
+fn adjust_entries(conn: &Connection, id: i64, delta: i64) -> Result<i64> {
+    if delta != 1 && delta != -1 {
+        return Err(
+            AppError::new("member.entries_step", "entries change one at a time")
+                .with("delta", delta),
+        );
+    }
+    conn.query_row(
+        "UPDATE member SET entries_left = entries_left + ?2
+          WHERE id = ?1 AND archived_at IS NULL
+          RETURNING entries_left",
+        params![id, delta],
+        |r| r.get(0),
+    )
+    .map_err(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => {
+            AppError::new("member.not_found", "member does not exist").with("id", id)
+        }
+        other => other.into(),
+    })
 }
 
 /// Archive rather than delete. Membership history is financial record keeping
@@ -261,7 +303,7 @@ pub(crate) fn load_member(conn: &Connection, id: i64) -> Result<Member> {
     conn.query_row(
         "SELECT id, first_name, last_name, national_id, birth_date, phone, email,
                 emergency_contact, emergency_phone, notes, teachers,
-                card_number, card_expires_on, joined_on
+                card_number, card_expires_on, joined_on, entries_left
            FROM member WHERE id = ?1",
         [id],
         |r| {
@@ -280,6 +322,7 @@ pub(crate) fn load_member(conn: &Connection, id: i64) -> Result<Member> {
                 card_number: r.get(11)?,
                 card_expires_on: r.get(12)?,
                 joined_on: r.get(13)?,
+                entries_left: r.get(14)?,
             })
         },
     )
@@ -390,6 +433,81 @@ mod tests {
             .query_row("SELECT count(*) FROM member", [], |r| r.get(0))
             .unwrap();
         assert_eq!(n, 0);
+    }
+
+    fn entries(conn: &Connection, id: i64) -> i64 {
+        load_member(conn, id).unwrap().entries_left
+    }
+
+    #[test]
+    fn a_new_member_starts_with_ten_entries() {
+        let conn = db::open_in_memory().unwrap();
+        let id = create(&conn, named("Ada"), vec![]).unwrap();
+        assert_eq!(entries(&conn, id), 10);
+    }
+
+    #[test]
+    fn the_form_sets_entries_and_a_blank_keeps_them() {
+        let conn = db::open_in_memory().unwrap();
+        let id = create(
+            &conn,
+            MemberInput {
+                entries_left: Some(4),
+                ..named("Ada")
+            },
+            vec![],
+        )
+        .unwrap();
+        assert_eq!(entries(&conn, id), 4);
+
+        update(&conn, id, named("Ada")).unwrap();
+        assert_eq!(entries(&conn, id), 4, "None on edit must keep the count");
+
+        update(
+            &conn,
+            id,
+            MemberInput {
+                entries_left: Some(-2),
+                ..named("Ada")
+            },
+        )
+        .unwrap();
+        assert_eq!(entries(&conn, id), -2);
+    }
+
+    /// The desk lets a member in on credit: the count goes negative and the
+    /// card shows how many they owe.
+    #[test]
+    fn entries_go_below_zero() {
+        let conn = db::open_in_memory().unwrap();
+        let id = create(
+            &conn,
+            MemberInput {
+                entries_left: Some(1),
+                ..named("Ada")
+            },
+            vec![],
+        )
+        .unwrap();
+        assert_eq!(adjust_entries(&conn, id, -1).unwrap(), 0);
+        assert_eq!(adjust_entries(&conn, id, -1).unwrap(), -1);
+        assert_eq!(adjust_entries(&conn, id, 1).unwrap(), 0);
+        assert_eq!(entries(&conn, id), 0);
+    }
+
+    #[test]
+    fn adjust_takes_one_step_and_a_live_member() {
+        let conn = db::open_in_memory().unwrap();
+        let id = create(&conn, named("Ada"), vec![]).unwrap();
+        assert_eq!(
+            adjust_entries(&conn, id, 5).unwrap_err().code,
+            "member.entries_step"
+        );
+        assert_eq!(entries(&conn, id), 10);
+        assert_eq!(
+            adjust_entries(&conn, 999, -1).unwrap_err().code,
+            "member.not_found"
+        );
     }
 
     /// The new columns sit between `notes` and `joined_on` in the SELECT, so a

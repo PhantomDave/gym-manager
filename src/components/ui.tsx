@@ -90,6 +90,37 @@ export const Field = ({
   </div>
 );
 
+/**
+ * − value +, for a small count. Buttons rather than `<input type="number">`:
+ * WebKitGTK draws its own spin buttons, the same trap as its date input
+ * (DECISIONS 11). The caller renders the label and points `labelledBy` at it.
+ */
+export const Stepper = ({
+  id,
+  labelledBy,
+  value,
+  onStep,
+}: {
+  id: string;
+  labelledBy: string;
+  value: number;
+  onStep: (delta: 1 | -1) => void;
+}) => (
+  <div class="stepper" role="group" aria-labelledby={labelledBy}>
+    <button type="button" class="btn btn-icon" aria-label={t("entries.take")}
+      onClick={() => onStep(-1)}>
+      −
+    </button>
+    <output id={id} class="stepper-value" aria-live="polite">
+      {value}
+    </output>
+    <button type="button" class="btn btn-icon" aria-label={t("entries.give")}
+      onClick={() => onStep(1)}>
+      +
+    </button>
+  </div>
+);
+
 export interface Option {
   value: string;
   label: string;
