@@ -79,6 +79,13 @@ const it = {
   "member.edit": "Modifica dati",
   "member.archive": "Togli dagli iscritti",
 
+  // Entries ----------------------------------------------------------------
+  "entries.left": "Ingressi rimasti",
+  "entries.take": "Togli un ingresso",
+  "entries.give": "Aggiungi un ingresso",
+  "entries.none": "Ingressi esauriti",
+  "entries.owed": "In debito di {count}",
+
   // Disciplines ------------------------------------------------------------
   "member.disciplines": "Discipline",
   "member.no_disciplines": "Nessuna disciplina.",
@@ -289,6 +296,7 @@ const it = {
   "err.member.not_found": "Questa persona non è più fra gli iscritti.",
   "err.member.name_required": "Servono sia il nome sia il cognome.",
   "err.member.duplicate_national_id": "C'è già un iscritto con questo codice fiscale.",
+  "err.member.entries_step": "Gli ingressi si cambiano uno alla volta.",
   "err.discipline.not_found": "Questa disciplina non esiste più.",
   "err.discipline.name_required": "Scrivi il nome della disciplina.",
   "err.discipline.duplicate": "{name} è già fra le discipline di questa persona.",

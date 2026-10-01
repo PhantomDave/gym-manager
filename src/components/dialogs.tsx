@@ -10,7 +10,7 @@ import { FEATURES } from "../features.js";
 import { api, pickDocument } from "../api.js";
 import { Dialog } from "./Dialog.js";
 import { DateField } from "./DateField.js";
-import { Field, Select } from "./ui.js";
+import { Field, Select, Stepper } from "./ui.js";
 import { centsToEuros, eurosToCents, fmtDate, today } from "../lib/format.js";
 import type {
   Discipline,
@@ -21,10 +21,16 @@ import type {
   RenewalPreview,
 } from "../types.js";
 
-/** The form's own state: every field a plain string, never null — text
+/** The form's own state: every text field a plain string, never null — text
  * inputs have no null state, only blank. Assignable directly to `MemberInput`
- * (whose optional fields are `string | null`) wherever it is sent to Rust. */
-type MemberFormValues = { [K in keyof MemberInput]: string };
+ * (whose optional fields are `string | null`) wherever it is sent to Rust.
+ * The entry count is the one number, set with a stepper. */
+type MemberFormValues = { [K in Exclude<keyof MemberInput, "entriesLeft">]: string } & {
+  entriesLeft: number;
+};
+
+/** What a new member starts with; mirrors the column default in migration 0007. */
+const DEFAULT_ENTRIES = 10;
 
 /** The association card normally lapses on 31 December of the year it was
  * issued. Only a proposal: the operator can pick any other date. It is offered
@@ -45,6 +51,7 @@ const emptyMember = (): MemberFormValues => ({
   teachers: "",
   cardNumber: "",
   cardExpiresOn: defaultCardExpiry(),
+  entriesLeft: DEFAULT_ENTRIES,
 });
 
 /** SQLite gives NULL; form inputs want "". */
@@ -62,6 +69,7 @@ function toInput(member: Member): MemberFormValues {
     teachers: member.teachers ?? "",
     cardNumber: member.cardNumber ?? "",
     cardExpiresOn: member.cardExpiresOn ?? "",
+    entriesLeft: member.entriesLeft,
   };
 }
 
@@ -105,7 +113,7 @@ export function MemberFormDialog({
   const [busy, setBusy] = useState(false);
 
   const set =
-    <K extends keyof MemberFormValues>(key: K) =>
+    <K extends Exclude<keyof MemberFormValues, "entriesLeft">>(key: K) =>
     (value: string) => {
       setForm((f) => {
         const next = { ...f, [key]: value };
@@ -144,7 +152,12 @@ export function MemberFormDialog({
     setBusy(true);
     try {
       if (editing) {
-        await api.memberUpdate(member.id, form);
+        // The count is sent only if the operator changed it here; untouched
+        // it goes as null, which keeps whatever is stored (DECISIONS 24).
+        await api.memberUpdate(member.id, {
+          ...form,
+          entriesLeft: form.entriesLeft === member.entriesLeft ? null : form.entriesLeft,
+        });
         onDone(member.id, t("form.saved"));
       } else {
         const chosen = disciplines
@@ -195,6 +208,11 @@ export function MemberFormDialog({
         <DateField id="f-card-expiry" label={t("field.card_expires_on")}
           value={form.cardExpiresOn} onInput={set("cardExpiresOn")}
           hint={t("form.card_expiry_hint")} />
+        <div class="field">
+          <span id="f-entries-label" class="field-label">{t("entries.left")}</span>
+          <Stepper id="f-entries" labelledBy="f-entries-label" value={form.entriesLeft}
+            onStep={(delta) => setForm((f) => ({ ...f, entriesLeft: f.entriesLeft + delta }))} />
+        </div>
         <Field id="f-notes" label={t("field.notes")} full
           value={form.notes} onInput={set("notes")} />
       </div>

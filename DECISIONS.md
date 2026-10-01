@@ -641,3 +641,36 @@ certificate. Removal is a soft delete, like documents.
 **Revisit if:** the gym wants a fixed catalogue of disciplines (names in
 Settings, filtering by discipline) — the free-text column would then gain a
 foreign key, with a migration folding the existing spellings together.
+
+## 24. Entries left is a stored count, kept by hand — 2026-10-01
+
+Each member carries `entries_left`, starting at 10. The desk presses − on the
+member card each time they come in and + to correct a mis-tap or top up. It
+can be set on the new-member and edit forms.
+
+**It is stored, and that does not break decision 3.** Decision 3 forbids a
+column that caches something derivable. This one is not derivable: with
+`features.checkins` off nothing else records a visit, so the number *is* the
+record. If check-ins come back and the desk wants the two tied together, the
+count becomes "allowance minus check-ins since the top-up" and this column
+goes — not before.
+
+**It may go negative.** The desk lets a member in on credit; −2 reads "owes 2"
+on the card. 0 shows a warning badge, a negative count a red one, both with
+the words, never colour alone. `entriesBadge` in `lib/status.ts` owns that.
+
+**Renewing a membership does not touch it.** The count is independent of the
+month; the operator tops it up with + or the form.
+
+**−/+ go through `member_entries_adjust(id, ±1)`, not `member_update`.** The
+arithmetic happens in SQL (`entries_left + ?`), so a double tap is two entries
+and a card open for an hour cannot write back a stale number. For the same
+reason the edit form sends `entriesLeft: null` ("keep") unless the operator
+changed it there. Both the card and the form use a −/+ stepper, not
+`<input type="number">`, for the reason in decision 11.
+
+There is no history of adjustments: who pressed − and when is not kept.
+
+**Revisit if:** the desk needs to see who took an entry and when, or to undo
+one from a list — the column then becomes a sum over an append-only
+`entry_adjustment` table, migrated with one opening row per member.

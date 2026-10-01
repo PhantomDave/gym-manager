@@ -85,6 +85,7 @@ pub fn run() {
             commands::expiries::expiries_list,
             commands::members::member_archive,
             commands::members::member_create,
+            commands::members::member_entries_adjust,
             commands::members::member_get,
             commands::members::member_update,
             commands::members::members_list,

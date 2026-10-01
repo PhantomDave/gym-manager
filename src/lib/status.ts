@@ -81,6 +81,18 @@ export const disciplineBadge = (through: string | null, settings: StatusSettings
     ? { tone: "blocked", text: t("discipline.no_membership") }
     : membershipBadge(through, settings);
 
+/**
+ * Badge for the hand-kept entry count, only once it has run out: none left is
+ * a warning, a negative count is entries taken on credit. `null` while some
+ * remain — the number beside it already says how many.
+ */
+export const entriesBadge = (left: number): BadgeSpec | null =>
+  left > 0
+    ? null
+    : left === 0
+      ? { tone: "warn", text: t("entries.none") }
+      : { tone: "blocked", text: t("entries.owed", { count: -left }) };
+
 /** Tone for a document row, from its expiry. Documents without one are neutral. */
 export function documentTone(expiresOn: string | null, certWarnDays: number): Tone {
   const days = daysUntil(expiresOn);

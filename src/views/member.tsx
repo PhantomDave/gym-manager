@@ -8,7 +8,7 @@ import { useEffect, useState } from "preact/hooks";
 import { t, type MessageKey } from "../i18n.js";
 import { api } from "../api.js";
 import { FEATURES } from "../features.js";
-import { Badges, Empty, Section } from "../components/ui.js";
+import { Badge, Badges, Empty, Section, Stepper } from "../components/ui.js";
 import {
   ConfirmDialog,
   DisciplineDialog,
@@ -17,7 +17,7 @@ import {
   ReasonDialog,
   RenewDialog,
 } from "../components/dialogs.js";
-import { disciplineBadge, documentTone, statusOf } from "../lib/status.js";
+import { disciplineBadge, documentTone, entriesBadge, statusOf } from "../lib/status.js";
 import { daysUntil, fmtBytes, fmtDate, fmtMoney } from "../lib/format.js";
 import type {
   Discipline,
@@ -91,6 +91,18 @@ export function MemberDrawer({
     onChanged();
   };
 
+  // The count comes back from SQL, so a double tap is two entries, never a
+  // stale overwrite. A failure is already toasted by `call`.
+  const stepEntries = async (delta: 1 | -1) => {
+    try {
+      const entriesLeft = await api.memberEntriesAdjust(memberId, delta);
+      setDetail((d) => d && { ...d, member: { ...d.member, entriesLeft } });
+    } catch {
+      void reload();
+    }
+  };
+  const entriesTag = entriesBadge(member.entriesLeft);
+
   const openRenew = async () =>
     setDialog({ kind: "renew", preview: await api.membershipPreview(memberId) });
 
@@ -126,6 +138,15 @@ export function MemberDrawer({
             {t("member.archive")}
           </button>
         </div>
+
+        <section class="drawer-section">
+          <h3 id="entries-label">{t("entries.left")}</h3>
+          <div class="entries">
+            <Stepper id="entries-left" labelledBy="entries-label" value={member.entriesLeft}
+              onStep={(delta) => void stepEntries(delta)} />
+            {entriesTag && <Badge tone={entriesTag.tone}>{entriesTag.text}</Badge>}
+          </div>
+        </section>
 
         <Section title={t("member.certificate")}>
           {certificates.length > 0 ? (
