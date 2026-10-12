@@ -8,7 +8,7 @@
     "smoke": "bun run build && python3 scripts/smoke.py"
   },
   "dependencies": {
-    "preact": "^10.29.8"
+    "preact": "^11.0.1"
   },
   "devDependencies": {
     "typescript": "^7.0.2"
