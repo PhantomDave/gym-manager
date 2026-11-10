@@ -35,7 +35,9 @@ export interface FieldProps {
   label: string;
   value: string;
   onInput: (value: string) => void;
-  type?: string;
+  /** The text-like types only: dates go through DateField, numbers through
+   * steppers. Preact 11 types each input `type` with its own attributes. */
+  type?: "text" | "email" | "tel";
   required?: boolean;
   placeholder?: string;
   hint?: string;
