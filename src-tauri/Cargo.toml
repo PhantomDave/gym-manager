@@ -6,7 +6,7 @@ authors = ["PhantomDave"]
 license = "MIT"
 repository = "https://github.com/PhantomDave/gym-manager"
 edition = "2021"
-rust-version = "1.85"
+rust-version = "1.90"
 
 [lib]
 name = "gym_manager_lib"
@@ -14,19 +14,19 @@ crate-type = ["lib", "cdylib", "staticlib"]
 
 [dependencies]
 chrono = { version = "0.4.45", default-features = false, features = ["clock", "std"] }
-rusqlite = { version = "0.40.2", features = ["bundled"] }
+rusqlite = { version = "0.41.1", features = ["bundled"] }
 serde = { version = "1.0.229", features = ["derive"] }
-serde_json = "1.0.151"
-sha2 = "0.11.0"
-tauri = { version = "2.11.6", features = [] }
-tauri-plugin-dialog = "2.7.3"
-tauri-plugin-opener = "2.5.5"
-tauri-plugin-process = "2.3.1"
-tauri-plugin-updater = "2.12.0"
-thiserror = "2.0.20"
+serde_json = "1.0.154"
+sha2 = "0.11.1"
+tauri = { version = "2.12.5", features = [] }
+tauri-plugin-dialog = "2.8.4"
+tauri-plugin-opener = "2.7.3"
+tauri-plugin-process = "2.4.0"
+tauri-plugin-updater = "2.14.1"
+thiserror = "2.0.21"
 
 [build-dependencies]
-tauri-build = { version = "2.6.3", features = [] }
+tauri-build = { version = "2.7.4", features = [] }
 
 # Tuned for size, not compile speed: this app should be as lightweight as
 # possible, and a smaller binary means less to page in.
