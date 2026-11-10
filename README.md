@@ -92,7 +92,7 @@ a compile error rather than a blank label.
 
 ## Building
 
-Rust 1.85+ and the Tauri system libraries. On Debian-based distributions:
+Rust 1.89+ and the Tauri system libraries. On Debian-based distributions:
 
 ```bash
 sudo apt install libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev libxdo-dev libssl-dev build-essential file

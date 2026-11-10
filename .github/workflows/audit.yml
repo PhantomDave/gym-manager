@@ -26,3 +26,10 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           working-directory: src-tauri
+          # zip 4.6.1 extraction advisories. zip comes only from
+          # tauri-plugin-updater 2.12 (latest stable), and only under
+          # cfg(target_os = "windows"): `cargo tree -i zip` on Linux prints
+          # nothing, and releases are built for Linux only (release.yml). Drop
+          # these once a stable updater depends on zip >= 9, or if a Windows
+          # build is ever shipped.
+          ignore: RUSTSEC-2026-0367,RUSTSEC-2026-0368,RUSTSEC-2026-0369,RUSTSEC-2026-0429
