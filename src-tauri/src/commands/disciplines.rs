@@ -9,7 +9,7 @@ use tauri::State;
 
 use super::{blank_to_none, optional_date};
 use crate::error::{AppError, Result};
-use crate::models::{Discipline, DisciplineInput};
+use crate::models::{Discipline, DisciplineInput, DisciplineName};
 use crate::AppState;
 
 #[tauri::command]
@@ -35,6 +35,34 @@ pub fn discipline_update(state: State<AppState>, id: i64, input: DisciplineInput
 #[tauri::command]
 pub fn discipline_remove(state: State<AppState>, id: i64) -> Result<()> {
     remove(&state.db(), id)
+}
+
+/// The discipline names in use, for the member-list filter and the
+/// suggestions on the name field. See DECISIONS 23.
+#[tauri::command]
+pub fn discipline_names(state: State<AppState>) -> Result<Vec<DisciplineName>> {
+    names(&state.db())
+}
+
+/// Live disciplines of members the roster shows (`member_status` hides the
+/// archived), one entry per name ignoring case. `min(name)` picks one spelling
+/// deterministically when "Boxe" and "boxe" both exist.
+pub(crate) fn names(conn: &Connection) -> Result<Vec<DisciplineName>> {
+    let mut stmt = conn.prepare(
+        "SELECT min(d.name), count(DISTINCT d.member_id)
+           FROM member_discipline d JOIN member_status s ON s.id = d.member_id
+          WHERE d.removed_at IS NULL
+          GROUP BY d.name COLLATE NOCASE
+          ORDER BY d.name COLLATE NOCASE",
+    )?;
+    let rows = stmt.query_map([], |r| {
+        Ok(DisciplineName {
+            name: r.get(0)?,
+            members: r.get(1)?,
+        })
+    })?;
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(Into::into)
 }
 
 pub(crate) fn insert(conn: &Connection, member_id: i64, input: DisciplineInput) -> Result<i64> {
@@ -224,6 +252,36 @@ mod tests {
                 .unwrap_err()
                 .code,
             "date.invalid"
+        );
+    }
+
+    #[test]
+    fn names_fold_case_and_skip_removed_and_archived() {
+        let conn = setup();
+        for (id, first) in [(2, "Grace"), (3, "Alan")] {
+            conn.execute(
+                "INSERT INTO member (id, first_name, last_name) VALUES (?1, ?2, 'X')",
+                params![id, first],
+            )
+            .unwrap();
+        }
+        insert(&conn, 1, input("boxe", None)).unwrap();
+        insert(&conn, 2, input("Boxe", None)).unwrap();
+        let yoga = insert(&conn, 2, input("Yoga", None)).unwrap();
+        remove(&conn, yoga).unwrap();
+        insert(&conn, 3, input("Pilates", None)).unwrap();
+        conn.execute(
+            "UPDATE member SET archived_at = '2026-01-01' WHERE id = 3",
+            [],
+        )
+        .unwrap();
+
+        assert_eq!(
+            names(&conn).unwrap(),
+            [DisciplineName {
+                name: "Boxe".into(),
+                members: 2
+            }]
         );
     }
 

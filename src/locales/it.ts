@@ -53,6 +53,9 @@ const it = {
   "members.search_label": "Cerca fra gli iscritti",
   "members.search_placeholder": "Cognome o nome",
   "members.empty": "Nessun iscritto corrisponde a questo filtro.",
+  "members.discipline_label": "Disciplina",
+  "members.discipline_all": "Tutte",
+  "members.discipline_option": "{name} ({count})",
   "members.count_one": "{count} iscritto",
   "members.count_other": "{count} iscritti",
 

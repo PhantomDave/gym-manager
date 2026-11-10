@@ -4,7 +4,7 @@
 // A failed confirm keeps the dialog open. The toast already carries the reason,
 // and closing would make the operator retype a whole form to fix one field.
 
-import { useRef, useState } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 import { t } from "../i18n.js";
 import { FEATURES } from "../features.js";
 import { api, pickDocument } from "../api.js";
@@ -63,6 +63,25 @@ function toInput(member: Member): MemberFormValues {
     cardNumber: member.cardNumber ?? "",
     cardExpiresOn: member.cardExpiresOn ?? "",
   };
+}
+
+/** The discipline names already on the roster, offered on every discipline
+ * name field so the desk picks "Boxe" instead of typing a new spelling of it.
+ * The member-list filter groups by these names; see DECISIONS 23. */
+const DISCIPLINE_NAMES = "discipline-names";
+
+function DisciplineSuggestions() {
+  const [names, setNames] = useState<string[]>([]);
+  useEffect(() => {
+    void api.disciplineNames().then((ns) => setNames(ns.map((n) => n.name)));
+  }, []);
+  return (
+    <datalist id={DISCIPLINE_NAMES}>
+      {names.map((n) => (
+        <option key={n} value={n} />
+      ))}
+    </datalist>
+  );
 }
 
 /** One discipline row on the new-member form. */
@@ -202,12 +221,13 @@ export function MemberFormDialog({
       {!editing && (
         <fieldset class="form-block">
           <legend class="field-label">{t("member.disciplines")}</legend>
+          <DisciplineSuggestions />
           {disciplines.map((d, i) => (
             <div key={d.key} class="discipline-entry">
               <div class="inline-entry">
                 <Field id={`f-disc-${d.key}`} label={`${t("discipline.name")} ${i + 1}`}
                   placeholder={t("discipline.name_placeholder")} value={d.name} error={d.nameError}
-                  onInput={(v) => editDiscipline(d.key, { name: v })} />
+                  list={DISCIPLINE_NAMES} onInput={(v) => editDiscipline(d.key, { name: v })} />
                 <button type="button" class="btn btn-ghost btn-icon btn-danger"
                   aria-label={t("discipline.remove")}
                   onClick={() => setDisciplines((ds) => ds.filter((x) => x.key !== d.key))}>
@@ -404,9 +424,10 @@ export function DisciplineDialog({
       busy={busy}
     >
       <div class="form-grid">
+        <DisciplineSuggestions />
         <Field id="disc-name" label={t("discipline.name")} required full autoFocus
           placeholder={t("discipline.name_placeholder")} value={name} error={nameError}
-          onInput={(v) => { setName(v); setNameError(undefined); }} />
+          list={DISCIPLINE_NAMES} onInput={(v) => { setName(v); setNameError(undefined); }} />
         <DateField key={dateKey} id="disc-expires" label={t("discipline.expires_on")}
           value={expiresOn} hint={t("discipline.expires_hint")} error={dateError}
           onInput={(v) => { setExpiresOn(v); setDateError(undefined); }}

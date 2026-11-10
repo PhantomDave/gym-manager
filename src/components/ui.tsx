@@ -44,6 +44,8 @@ export interface FieldProps {
   full?: boolean;
   inputMode?: "text" | "numeric" | "decimal" | "tel" | "email";
   autoFocus?: boolean;
+  /** Id of a `<datalist>` offering suggestions; typing anything else still works. */
+  list?: string;
 }
 
 /**
@@ -63,6 +65,7 @@ export const Field = ({
   full = false,
   inputMode,
   autoFocus = false,
+  list,
 }: FieldProps) => (
   <div class={`field ${full ? "full" : ""} ${error ? "invalid" : ""}`}>
     <label for={id}>
@@ -76,6 +79,7 @@ export const Field = ({
       value={value}
       placeholder={placeholder}
       autofocus={autoFocus}
+      list={list}
       aria-invalid={error ? "true" : undefined}
       aria-describedby={error ? `${id}-error` : undefined}
       onInput={(e) => onInput((e.target as HTMLInputElement).value)}

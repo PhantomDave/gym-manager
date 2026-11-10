@@ -201,6 +201,17 @@ pub struct DisciplineInput {
     pub expires_on: Option<String>,
 }
 
+/// One discipline name in use on the roster, for the member-list filter and
+/// the name suggestions. Spellings differing only in case are one entry.
+#[derive(Debug, Serialize, PartialEq, Eq)]
+#[cfg_attr(test, derive(TS))]
+#[serde(rename_all = "camelCase")]
+pub struct DisciplineName {
+    pub name: String,
+    /// Members (not archived) who practise it.
+    pub members: i64,
+}
+
 #[derive(Debug, Serialize)]
 #[cfg_attr(test, derive(TS))]
 #[serde(rename_all = "camelCase")]

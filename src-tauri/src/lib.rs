@@ -74,6 +74,7 @@ pub fn run() {
             commands::checkins::checkins_today,
             commands::checkins::entry_check,
             commands::disciplines::discipline_add,
+            commands::disciplines::discipline_names,
             commands::disciplines::discipline_remove,
             commands::disciplines::discipline_update,
             commands::documents::document_add,
