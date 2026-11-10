@@ -102,6 +102,12 @@ jobs:
           rm -fv squashfs-root/usr/lib/libwayland-server*
           rm -fv squashfs-root/usr/lib/libwayland-cursor*
 
+          # The extracted AppDir comes out owner-only (0700). appimagetool has
+          # refused to pack that since its AppDir permission checks (2026-10-29,
+          # AppImage/appimagetool#135): an AppImage is run by users other than
+          # the one who built it, and they would get "Permission denied".
+          chmod -R a+rX squashfs-root
+
           curl -fsSL -o appimagetool \
             https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool
