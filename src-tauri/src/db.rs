@@ -19,6 +19,7 @@ const MIGRATIONS: &[&str] = &[
     include_str!("migrations/0004_member_card_teachers.sql"),
     include_str!("migrations/0005_id_document_status.sql"),
     include_str!("migrations/0006_member_discipline.sql"),
+    include_str!("migrations/0007_member_entries.sql"),
 ];
 
 /// Open (creating if needed) the database and bring it up to date.

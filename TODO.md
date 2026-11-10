@@ -90,7 +90,8 @@ to anything non-obvious so it is still legible in three months.
 
 ## Features
 
-- [ ] **Plans beyond one month** — quarterly, annual, ten-entry punch cards. The
+- [ ] **Plans beyond one month** — quarterly, annual. (A hand-kept count of
+      entries left is on the member card; see DECISIONS 24.) The
       schema needs a `plan` table; `dates.rs` needs a period length parameter.
       Do not do this until someone actually asks for it.
 - [ ] **Attendance reporting** — visits per member per month, quiet hours.

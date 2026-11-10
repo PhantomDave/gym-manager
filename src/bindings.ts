@@ -25,9 +25,17 @@ teachers: string | null, cardNumber: string | null,
 /**
  * When the association card lapses. The form proposes 31 December.
  */
-cardExpiresOn: string | null, joinedOn: string, };
+cardExpiresOn: string | null, joinedOn: string, 
+/**
+ * Entries left, counted down by hand. Negative: owed. See DECISIONS 24.
+ */
+entriesLeft: number, };
 
-export type MemberInput = { firstName: string, lastName: string, nationalId: string | null, birthDate: string | null, phone: string | null, email: string | null, emergencyContact: string | null, emergencyPhone: string | null, notes: string | null, teachers: string | null, cardNumber: string | null, cardExpiresOn: string | null, };
+export type MemberInput = { firstName: string, lastName: string, nationalId: string | null, birthDate: string | null, phone: string | null, email: string | null, emergencyContact: string | null, emergencyPhone: string | null, notes: string | null, teachers: string | null, cardNumber: string | null, cardExpiresOn: string | null, 
+/**
+ * `None` on create takes the column default (10); on edit, keeps the count.
+ */
+entriesLeft: number | null, };
 
 export type PaymentMethod = "cash" | "card" | "transfer";
 
