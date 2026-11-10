@@ -109,7 +109,7 @@ export function MemberDrawer({
   const fullName = `${member.firstName} ${member.lastName}`;
 
   return (
-    <aside class="drawer" role="dialog" aria-label={fullName}>
+    <div class="drawer" role="dialog" aria-label={fullName}>
       <div class="drawer-head">
         <div>
           <h2>{fullName}</h2>
@@ -344,7 +344,7 @@ export function MemberDrawer({
           }}
         />
       )}
-    </aside>
+    </div>
   );
 }
 
