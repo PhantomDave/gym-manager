@@ -11,6 +11,7 @@ import type {
   CheckinRow,
   Dashboard,
   DisciplineInput,
+  DisciplineName,
   Document,
   DocumentInput,
   DocumentKind,
@@ -96,7 +97,7 @@ export const api = {
   settingsSet: (key: string, value: string) => call<null>("settings_set", { key, value }),
   backupNow: () => call<string>("backup_now"),
 
-  membersList: (args: { filter?: Filter; query?: string; limit?: number }) =>
+  membersList: (args: { filter?: Filter; query?: string; discipline?: string; limit?: number }) =>
     call<MemberRow[]>("members_list", args),
   memberGet: (id: number) => call<MemberDetail>("member_get", { id }),
   memberCreate: (input: MemberInput, disciplines: DisciplineInput[]) =>
@@ -125,6 +126,7 @@ export const api = {
   disciplineUpdate: (id: number, input: DisciplineInput) =>
     call<null>("discipline_update", { id, input }),
   disciplineRemove: (id: number) => call<null>("discipline_remove", { id }),
+  disciplineNames: () => call<DisciplineName[]>("discipline_names"),
 
   documentAdd: (input: DocumentInput) => call<Document>("document_add", { input }),
   documentOpen: (id: number) => call<null>("document_open", { id }),

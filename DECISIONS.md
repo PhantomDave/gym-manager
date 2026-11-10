@@ -638,9 +638,18 @@ The discipline badge uses the membership rule in `statusOf`'s module — grace
 and warning days included — because a discipline is paid time, not a
 certificate. Removal is a soft delete, like documents.
 
-**Revisit if:** the gym wants a fixed catalogue of disciplines (names in
-Settings, filtering by discipline) — the free-text column would then gain a
-foreign key, with a migration folding the existing spellings together.
+**Filtering by discipline works on the names in use, not on a catalogue** (added
+2026-11-10). The member list offers every live discipline name on the roster,
+grouped ignoring case, and keeps the members who practise it; it combines with
+the status chips, so "Boxe" + "Expired" is a call list. It means *practises*,
+not *paid for*: a discipline's own custom expiry is the Expiries screen's job.
+To stop new spellings of the same name piling up, every discipline name field
+suggests the existing names through a `<datalist>`. No migration, no Settings
+screen to keep in step.
+
+**Revisit if:** spellings still drift ("Box" and "Boxe" both in the filter), or
+the gym wants a fixed catalogue in Settings. The free-text column would then
+gain a foreign key, with a migration folding the existing spellings together.
 
 ## 24. Entries left is a stored count, kept by hand — 2026-10-01
 

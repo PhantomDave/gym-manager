@@ -72,6 +72,12 @@ export type DisciplineInput = { name: string,
  */
 expiresOn: string | null, };
 
+export type DisciplineName = { name: string, 
+/**
+ * Members (not archived) who practise it.
+ */
+members: number, };
+
 export type MemberDetail = { member: Member, memberships: Array<Membership>, documents: Array<Document>, disciplines: Array<Discipline>, paidThrough: string | null, certThrough: string | null, hasIdDocument: boolean, };
 
 export type Checkin = { id: number, memberId: number, at: string, membershipId: number | null, overrideReason: string | null, };

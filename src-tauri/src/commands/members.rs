@@ -16,16 +16,29 @@ pub(crate) const ID_DOC_MISSING: &str = "NOT has_id_document";
 /// The filters are expressed against the `member_status` view, so "active" and
 /// "expired" always agree with what the member detail screen shows. `limit` is
 /// enforced because a list screen has no business loading the whole roster.
+///
+/// `discipline` keeps only members who practise it (ignoring case), and
+/// combines with the filter and the search rather than replacing them.
 #[tauri::command]
 pub fn members_list(
     state: State<AppState>,
     filter: Option<Filter>,
     query: Option<String>,
+    discipline: Option<String>,
     limit: Option<u32>,
 ) -> Result<Vec<MemberRow>> {
-    let conn = state.db();
+    list(&state.db(), filter, query, discipline, limit)
+}
+
+fn list(
+    conn: &Connection,
+    filter: Option<Filter>,
+    query: Option<String>,
+    discipline: Option<String>,
+    limit: Option<u32>,
+) -> Result<Vec<MemberRow>> {
     let today = today().to_string();
-    let warn_days: i64 = crate::db::setting(&conn, "expiry_warning_days", "7")
+    let warn_days: i64 = crate::db::setting(conn, "expiry_warning_days", "7")
         .parse()
         .unwrap_or(7);
 
@@ -51,11 +64,20 @@ pub fn members_list(
         ""
     };
 
+    let discipline = blank_to_none(discipline);
+    let practises = if discipline.is_some() {
+        "AND EXISTS (SELECT 1 FROM member_discipline d
+                      WHERE d.member_id = member_status.id AND d.removed_at IS NULL
+                        AND d.name = :disc COLLATE NOCASE)"
+    } else {
+        ""
+    };
+
     let sql = format!(
         "SELECT id, first_name, last_name, phone, email, joined_on,
                 paid_through, cert_through, last_checkin, has_id_document
            FROM member_status
-          WHERE ({clause}) {search}
+          WHERE ({clause}) {search} {practises}
           ORDER BY last_name COLLATE NOCASE, first_name COLLATE NOCASE
           LIMIT :limit"
     );
@@ -66,11 +88,13 @@ pub fn members_list(
     // correct as new filters are added.
     let limit = limit.unwrap_or(200);
     let needle = needle.unwrap_or_default();
+    let discipline = discipline.unwrap_or_default();
     let mut args: Vec<(&str, &dyn rusqlite::ToSql)> = vec![(":limit", &limit)];
     for (name, value) in [
         (":today", &today as &dyn rusqlite::ToSql),
         (":warn", &warn_days),
         (":q", &needle),
+        (":disc", &discipline),
     ] {
         if sql.contains(name) {
             args.push((name, value));
@@ -433,6 +457,66 @@ mod tests {
             .query_row("SELECT count(*) FROM member", [], |r| r.get(0))
             .unwrap();
         assert_eq!(n, 0);
+    }
+
+    /// Ada and Grace box (spelled two ways), Grace also does yoga, Alan only
+    /// did boxing and stopped; Grace is the one with a live membership.
+    fn roster() -> Connection {
+        let conn = db::open_in_memory().unwrap();
+        create(&conn, named("Ada"), vec![discipline("Boxe")]).unwrap();
+        let grace = create(
+            &conn,
+            named("Grace"),
+            vec![discipline("boxe"), discipline("Yoga")],
+        )
+        .unwrap();
+        let alan = create(&conn, named("Alan"), vec![discipline("Boxe")]).unwrap();
+        conn.execute(
+            "UPDATE member_discipline SET removed_at = '2026-01-01' WHERE member_id = ?1",
+            [alan],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO membership (member_id, starts_on, ends_on, price_cents)
+             VALUES (?1, '2026-01-01', '2099-12-31', 3000)",
+            [grace],
+        )
+        .unwrap();
+        conn
+    }
+
+    fn firsts(rows: Vec<MemberRow>) -> Vec<String> {
+        rows.into_iter().map(|m| m.first_name).collect()
+    }
+
+    fn practising(conn: &Connection, filter: Filter, query: &str, d: &str) -> Vec<String> {
+        firsts(list(conn, Some(filter), Some(query.into()), Some(d.into()), None).unwrap())
+    }
+
+    #[test]
+    fn discipline_filter_ignores_case_and_removed_disciplines() {
+        let conn = roster();
+        assert_eq!(practising(&conn, Filter::All, "", "BOXE"), ["Ada", "Grace"]);
+        assert_eq!(practising(&conn, Filter::All, "", "Yoga"), ["Grace"]);
+        assert!(practising(&conn, Filter::All, "", "Pilates").is_empty());
+    }
+
+    #[test]
+    fn discipline_filter_combines_with_status_and_search() {
+        let conn = roster();
+        assert_eq!(practising(&conn, Filter::Active, "", "Boxe"), ["Grace"]);
+        assert_eq!(practising(&conn, Filter::Expired, "", "Boxe"), ["Ada"]);
+        assert_eq!(practising(&conn, Filter::All, "gra", "Boxe"), ["Grace"]);
+    }
+
+    #[test]
+    fn blank_discipline_means_no_discipline_filter() {
+        let conn = roster();
+        assert_eq!(practising(&conn, Filter::All, "", "  ").len(), 3);
+        assert_eq!(
+            firsts(list(&conn, None, None, None, None).unwrap()).len(),
+            3
+        );
     }
 
     fn entries(conn: &Connection, id: i64) -> i64 {
