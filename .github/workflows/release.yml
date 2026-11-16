@@ -62,7 +62,7 @@ jobs:
 
       # Prebuilt binary rather than `cargo install tauri-cli`, which would spend
       # several minutes compiling the CLI on every release.
-      - uses: cargo-bins/cargo-binstall@v1.26.2
+      - uses: cargo-bins/cargo-binstall@v1.27.0
 
       - name: Install the Tauri CLI
         run: cargo binstall -y --locked tauri-cli@^2
@@ -183,7 +183,7 @@ jobs:
             exit 1
           fi
 
-      - uses: cargo-bins/cargo-binstall@v1.26.2
+      - uses: cargo-bins/cargo-binstall@v1.27.0
 
       - name: Install the Tauri CLI
         run: cargo binstall -y --locked tauri-cli@^2
@@ -248,7 +248,7 @@ jobs:
             exit 1
           fi
 
-      - uses: cargo-bins/cargo-binstall@v1.26.2
+      - uses: cargo-bins/cargo-binstall@v1.27.0
 
       - name: Install the Tauri CLI
         run: cargo binstall -y --locked tauri-cli@^2
